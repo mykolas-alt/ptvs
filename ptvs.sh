@@ -59,7 +59,7 @@ start_process() {
     local existing_pid
     existing_pid="$(cat "$pid_file")"
     if [[ -n "$existing_pid" ]] && is_pid_running "$existing_pid"; then
-      echo "$name is already running (PID $existing_pid)."
+      echo "$name is already running (PID $existing_pid). Stop it first."
       return
     fi
   fi
@@ -75,21 +75,45 @@ stop_process() {
   local pid_file="$2"
 
   if [[ ! -f "$pid_file" ]]; then
-    echo "$name is not running."
+    echo "$name is not running (no PID file)."
     return
   fi
 
   local pid
-  pid="$(cat "$pid_file")"
+  pid="$(cat "$pid_file" 2>/dev/null || echo "")"
+
   if [[ -z "$pid" ]] || ! is_pid_running "$pid"; then
     rm -f "$pid_file"
     echo "$name is not running."
     return
   fi
 
-  kill "$pid"
+  echo "Stopping $name (PID $pid)..."
+
+  # Try graceful shutdown
+  kill "$pid" 2>/dev/null || true
+  sleep 1
+
+  # If still alive, kill process group (most important for Vite)
+  if is_pid_running "$pid"; then
+    kill -TERM -- -"$pid" 2>/dev/null || true   # negative = process group
+    sleep 1
+  fi
+
+  # Nuclear option
+  if is_pid_running "$pid"; then
+    kill -KILL "$pid" 2>/dev/null || true
+    sleep 0.5
+  fi
+
+  # Extra cleanup: kill any Vite/Node processes in the client directory
+  if [[ "$name" == "frontend" ]]; then
+    pkill -9 -f "vite.*$PROJECT_ROOT/client" 2>/dev/null || true
+    pkill -9 -f "node.*$PROJECT_ROOT/client" 2>/dev/null || true
+  fi
+
   rm -f "$pid_file"
-  echo "Stopped $name (PID $pid)."
+  echo "Stopped $name."
 }
 
 container_exists() {
