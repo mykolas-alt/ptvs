@@ -1,0 +1,31 @@
+import { NavLink } from 'react-router-dom'
+import type { UserInfo } from '../hooks/useAuth'
+import '../styles/Navbar.css'
+
+type Props = {
+  userInfo: UserInfo | null
+  onLogout: () => void
+}
+
+export function Navbar({ userInfo, onLogout }: Props) {
+  return (
+    <nav className="navbar">
+      <div className="navbar-brand">PTVS</div>
+      <div className="navbar-links">
+        <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+          Services
+        </NavLink>
+        <NavLink to="/services/register" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+          Register Service
+        </NavLink>
+        <NavLink to="/reports" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+          Reports
+        </NavLink>
+      </div>
+      <div className="navbar-user">
+        {userInfo && <span className="navbar-username">{userInfo.username}</span>}
+        <button onClick={onLogout} className="logout-button">Logout</button>
+      </div>
+    </nav>
+  )
+}
