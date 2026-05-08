@@ -15,3 +15,4 @@ auth:
   jwt-expiration-seconds: ${AUTH_JWT_EXPIRATION_SECONDS:3600}
   allowed-origins:
     - ${AUTH_ALLOWED_ORIGIN:http://localhost:5173}
+    - http://127.0.0.1:5173
