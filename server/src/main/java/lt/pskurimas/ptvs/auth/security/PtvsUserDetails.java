@@ -21,10 +21,9 @@ public class PtvsUserDetails implements UserDetails {
     @Override
     @NonNull
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Set<SimpleGrantedAuthority> authorities = user.getRoles().stream()
+        return user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(java.util.stream.Collectors.toSet());
-        return authorities;
     }
 
     @Override

@@ -41,5 +41,5 @@ public class AppUser {
     @CollectionTable(name = "app_user_role", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
-    private Set<AppRole> roles = new HashSet<>();
+    private Set<UserRole> roles = new HashSet<>();
 }

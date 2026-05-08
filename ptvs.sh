@@ -6,6 +6,7 @@ PROJECT_ROOT="$SCRIPT_DIR"
 STATE_DIR="$PROJECT_ROOT/.ptvs"
 PID_DIR="$STATE_DIR/pids"
 LOG_DIR="$STATE_DIR/logs"
+CONFIG_FILE="$PROJECT_ROOT/ptvs-config.env"
 
 CONTAINER_NAME="ptvs-postgres"
 DEFAULT_VOLUME="ptvs-postgres-data"
@@ -16,24 +17,40 @@ DB_PASSWORD="ptvs"
 
 mkdir -p "$PID_DIR" "$LOG_DIR"
 
+# Load configuration
+if [[ -f "$CONFIG_FILE" ]]; then
+  source "$CONFIG_FILE"
+else
+  DEBUG_ENABLED=false
+  MAVEN_OPTS=""
+  NODE_OPTIONS=""
+fi
+
 usage() {
   cat <<'EOF'
 Usage:
-  ./ptvs.sh --start
-  ./ptvs.sh --stop
+  ./ptvs.sh --start [--components client,server]
+  ./ptvs.sh --stop [--components client,server]
   ./ptvs.sh --startdb [--volume <volume-name>]
   ./ptvs.sh --stopdb
   ./ptvs.sh --exportdump <dump.dmp> [--volume <volume-name>]
   ./ptvs.sh --importdump <dump.dmp> [--volume <volume-name>]
 
 Options:
-  --start             Start backend and frontend in the background.
-  --stop              Stop backend and frontend started by this script.
-  --startdb           Start PostgreSQL container.
-  --stopdb            Stop PostgreSQL container.
-  --exportdump FILE   Export PostgreSQL dump in custom format (.dmp).
-  --importdump FILE   Import PostgreSQL custom-format dump (.dmp).
-  --volume NAME       Docker volume name for PostgreSQL data (default: ptvs-postgres-data).
+  --start               Start server and client in the background.
+  --stop                Stop server and client started by this script.
+  --components LIST     Comma-separated component list (client,server). Default: both.
+  --startdb             Start PostgreSQL container.
+  --stopdb              Stop PostgreSQL container.
+  --exportdump FILE     Export PostgreSQL dump in custom format (.dmp).
+  --importdump FILE     Import PostgreSQL custom-format dump (.dmp).
+  --volume NAME         Docker volume name for PostgreSQL data (default: ptvs-postgres-data).
+
+Configuration:
+  Edit ptvs-config.env to control:
+  - DEBUG_ENABLED       Enable remote debugging on server (port 5005)
+  - MAVEN_OPTS          Additional Maven options
+  - NODE_OPTIONS        Additional Node options
 EOF
 }
 
@@ -107,7 +124,7 @@ stop_process() {
   fi
 
   # Extra cleanup: kill any Vite/Node processes in the client directory
-  if [[ "$name" == "frontend" ]]; then
+  if [[ "$name" == "client" ]]; then
     pkill -9 -f "vite.*$PROJECT_ROOT/client" 2>/dev/null || true
     pkill -9 -f "node.*$PROJECT_ROOT/client" 2>/dev/null || true
   fi
@@ -222,22 +239,40 @@ start_apps() {
     (cd "$PROJECT_ROOT/client" && npm install)
   fi
 
-  start_process \
-    "frontend" \
-    "$PID_DIR/client.pid" \
-    "$LOG_DIR/client.log" \
-    bash -lc "cd '$PROJECT_ROOT/client' && npm run dev"
+  if [[ "$COMPONENTS" == *"client"* ]]; then
+    local client_env="NODE_OPTIONS"
+    [[ -n "$NODE_OPTIONS" ]] && client_env="$client_env='$NODE_OPTIONS'"
+    start_process \
+      "client" \
+      "$PID_DIR/client.pid" \
+      "$LOG_DIR/client.log" \
+      bash -lc "cd '$PROJECT_ROOT/client' && npm run dev"
+  fi
 
-  start_process \
-    "backend" \
-    "$PID_DIR/server.pid" \
-    "$LOG_DIR/server.log" \
-    bash -lc "cd '$PROJECT_ROOT' && ./mvnw -pl server spring-boot:run"
+  if [[ "$COMPONENTS" == *"server"* ]]; then
+    local mvn_cmd="./mvnw -pl server spring-boot:run"
+    local debug_arg=""
+    
+    if [[ "$DEBUG_ENABLED" == "true" ]]; then
+      debug_arg="-Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"
+      echo "Starting server with remote debugging enabled (port 5005)"
+    fi
+    
+    start_process \
+      "server" \
+      "$PID_DIR/server.pid" \
+      "$LOG_DIR/server.log" \
+      bash -lc "cd '$PROJECT_ROOT' && MAVEN_OPTS='${MAVEN_OPTS}' ./mvnw -pl server spring-boot:run ${debug_arg}"
+  fi
 }
 
 stop_apps() {
-  stop_process "backend" "$PID_DIR/server.pid"
-  stop_process "frontend" "$PID_DIR/client.pid"
+  if [[ "$COMPONENTS" == *"server"* ]]; then
+    stop_process "server" "$PID_DIR/server.pid"
+  fi
+  if [[ "$COMPONENTS" == *"client"* ]]; then
+    stop_process "client" "$PID_DIR/client.pid"
+  fi
 }
 
 ACTION_START=false
@@ -247,6 +282,7 @@ ACTION_STOP_DB=false
 EXPORT_DUMP_FILE=""
 DUMP_FILE=""
 VOLUME_NAME="$DEFAULT_VOLUME"
+COMPONENTS="client,server"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -257,6 +293,11 @@ while [[ $# -gt 0 ]]; do
     --stop)
       ACTION_STOP=true
       shift
+      ;;
+    --components)
+      [[ $# -lt 2 ]] && { echo "--components requires a value (e.g., client,server)." >&2; exit 1; }
+      COMPONENTS="$2"
+      shift 2
       ;;
     --startdb)
       ACTION_START_DB=true
