@@ -22,7 +22,7 @@ public class PtvsUserDetails implements UserDetails {
     @NonNull
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                .map(role -> new SimpleGrantedAuthority(role.getPrefixedRoleName()))
                 .collect(java.util.stream.Collectors.toSet());
     }
 
