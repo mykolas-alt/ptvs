@@ -1,14 +1,94 @@
-/* App.css - Global app styles */
+.container {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
 
-* {
-  box-sizing: border-box;
+.card {
+  width: min(100%, 420px);
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card h1 {
+  margin: 0 0 8px;
+}
+
+.muted {
+  color: #666;
+  margin: 0 0 20px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.form input {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.mode-switch {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 button {
-  font-family: inherit;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: #111;
+  color: #fff;
+  font-weight: 600;
 }
 
-input {
-  font-family: inherit;
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
+.secondary {
+  background: #666;
+}
+
+.mode-active {
+  background: #111;
+}
+
+.session {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+.error {
+  margin-top: 14px;
+  color: #b00020;
+}
+
+.success {
+  margin-top: 14px;
+  color: #0b7a3e;
+}
