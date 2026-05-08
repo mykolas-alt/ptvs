@@ -2,12 +2,12 @@ import { NavLink } from 'react-router-dom'
 import type { UserInfo } from '../hooks/useAuth'
 import '../styles/Navbar.css'
 
-type Props = {
+export type NavbarProps = {
   userInfo: UserInfo | null
   onLogout: () => void
 }
 
-export function Navbar({ userInfo, onLogout }: Props) {
+export function Navbar({ userInfo, onLogout }: NavbarProps) {
   return (
     <nav className="navbar">
       <div className="navbar-brand">PTVS</div>

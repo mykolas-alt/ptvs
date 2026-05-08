@@ -22,6 +22,22 @@ type FormData = {
 
 type Errors = Partial<Record<keyof FormData, string>>
 
+type FieldProps = {
+  label: string
+  error?: string
+  children: ReactNode
+}
+
+function Field({ label, error, children }: FieldProps) {
+  return (
+    <div className={`form-field${error ? ' has-error' : ''}`}>
+      <label>{label}</label>
+      {children}
+      {error && <span className="field-error">{error}</span>}
+    </div>
+  )
+}
+
 const EMPTY: FormData = {
   name: '',
   vendor: '',
@@ -222,24 +238,6 @@ export function ServiceRegistration() {
           </form>
         )}
       </main>
-    </div>
-  )
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string
-  error?: string
-  children: ReactNode
-}) {
-  return (
-    <div className={`form-field${error ? ' has-error' : ''}`}>
-      <label>{label}</label>
-      {children}
-      {error && <span className="field-error">{error}</span>}
     </div>
   )
 }
