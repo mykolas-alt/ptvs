@@ -10,15 +10,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class NotificationConfigServiceTest {
+class NotificationUserConfigServiceTest {
 
     @Mock
     private NotificationUserConfigRepository userConfigRepo;
@@ -27,7 +27,7 @@ class NotificationConfigServiceTest {
     private NotificationVendorConfigRepository vendorConfigRepo;
 
     @InjectMocks
-    private NotificationConfigService service;
+    private NotificationUserConfigService service;
 
     // Test UUID'ai
     private final UUID userId   = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -52,7 +52,7 @@ class NotificationConfigServiceTest {
 
     @Test
     void shouldNotify_WhenGlobalDisabled_ReturnsFalse() {
-        globalConfig.setEnabled(false);
+        globalConfig.setNotificationsEnabled(false);
         when(userConfigRepo.findByUserId(userId)).thenReturn(Optional.of(globalConfig));
 
         assertFalse(service.shouldNotify(userId, vendorId));

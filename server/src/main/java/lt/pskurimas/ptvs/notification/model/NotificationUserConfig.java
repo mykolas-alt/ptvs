@@ -24,7 +24,7 @@ public class NotificationUserConfig {
 
     /** If false - no notifications will be sent */
     @Column(name = "notifications_enabled", nullable = false)
-    private boolean enabled = false;
+    private boolean notificationsEnabled = false;
 
     /**
      * true = Notifications for all vendors will be sent

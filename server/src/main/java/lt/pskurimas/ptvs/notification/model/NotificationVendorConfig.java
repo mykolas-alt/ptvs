@@ -26,7 +26,7 @@ public class NotificationVendorConfig {
     private UUID vendorId;
 
     @Column(name = "vendor_enabled", nullable = false)
-    private boolean enabled = true;
+    private boolean vendorEnabled = true;
 
     @Column(name = "days_before_expiry")
     private Integer daysBeforeExpiry;

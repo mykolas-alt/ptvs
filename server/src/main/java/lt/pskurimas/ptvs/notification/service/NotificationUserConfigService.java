@@ -1,18 +1,18 @@
 package lt.pskurimas.ptvs.notification.service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lt.pskurimas.ptvs.notification.model.NotificationVendorConfig;
 import lt.pskurimas.ptvs.notification.model.NotificationUserConfig;
-import lt.pskurimas.ptvs.notification.repository.NotificationVendorConfigRepository;
+import lt.pskurimas.ptvs.notification.model.NotificationVendorConfig;
 import lt.pskurimas.ptvs.notification.repository.NotificationUserConfigRepository;
+import lt.pskurimas.ptvs.notification.repository.NotificationVendorConfigRepository;
 import org.springframework.stereotype.Service;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class NotificationConfigService {
+public class NotificationUserConfigService {
 
     private final NotificationUserConfigRepository userConfigRepo;
     private final NotificationVendorConfigRepository vendorConfigRepo;
@@ -21,26 +21,25 @@ public class NotificationConfigService {
     public boolean shouldNotify(UUID userId, UUID vendorId) {
         NotificationUserConfig global = userConfigRepo.findByUserId(userId).orElse(null);
 
-        // If there are no Global configurations, OR notifications are off
-        if (global == null || !global.isEnabled()) {
+        // If there are no global configurations, OR notifications are off
+        if (global == null || !global.isNotificationsEnabled()) {
             return false;
         }
 
-        // If notifyAll = true - send every vendor
+        // If notifyAll = true - send for every vendor
         if (global.isNotifyAllVendors()) {
             return true;
         }
 
-        // Send it only when the vendor is included AND enabled
+        // Send only when the vendor is included AND enabled
         NotificationVendorConfig vendorConfig = vendorConfigRepo
                 .findByUserIdAndVendorId(userId, vendorId)
                 .orElse(null);
 
-        return vendorConfig != null && vendorConfig.isEnabled();
+        return vendorConfig != null && vendorConfig.isVendorEnabled();
     }
 
     public Integer resolveDaysBeforeExpiry(UUID userId, UUID vendorId) {
-
         // Check if there is a vendor-specific configuration
         NotificationVendorConfig vendorConfig = vendorConfigRepo
                 .findByUserIdAndVendorId(userId, vendorId)
@@ -51,9 +50,7 @@ public class NotificationConfigService {
         }
 
         // If there is no value in vendorConfig then return the global value
-        NotificationUserConfig userConfig = userConfigRepo
-                .findByUserId(userId)
-                .orElse(null);
+        NotificationUserConfig userConfig = userConfigRepo.findByUserId(userId).orElse(null);
 
         if (userConfig != null) {
             return userConfig.getDaysBeforeExpiry();
@@ -63,7 +60,6 @@ public class NotificationConfigService {
     }
 
     public String resolveAdditionalEmails(UUID userId, UUID vendorId) {
-
         // Check if there is a vendor-specific configuration
         NotificationVendorConfig vendorConfig = vendorConfigRepo
                 .findByUserIdAndVendorId(userId, vendorId)
@@ -75,9 +71,7 @@ public class NotificationConfigService {
         }
 
         // If there is no value in vendorConfig then return the global value
-        NotificationUserConfig userConfig = userConfigRepo
-                .findByUserId(userId)
-                .orElse(null);
+        NotificationUserConfig userConfig = userConfigRepo.findByUserId(userId).orElse(null);
 
         if (userConfig != null) {
             return userConfig.getAdditionalEmails();
@@ -90,22 +84,18 @@ public class NotificationConfigService {
         return userConfigRepo.findByUserId(userId);
     }
 
+    @Transactional
     public NotificationUserConfig saveUserConfig(NotificationUserConfig config) {
-        if (config.getDaysBeforeExpiry() == null) {
-            throw new IllegalArgumentException("Days before expiry must be set in global config");
-        }
+        validateDaysBeforeExpiry(config.getDaysBeforeExpiry());
         return userConfigRepo.save(config);
     }
 
+    @Transactional
     public NotificationUserConfig updateUserConfig(UUID userId, NotificationUserConfig updated) {
-        NotificationUserConfig existing = userConfigRepo.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Global config not found for user"));
+        NotificationUserConfig existing = findUserConfigOrThrow(userId);
+        validateDaysBeforeExpiry(updated.getDaysBeforeExpiry());
 
-        if (updated.getDaysBeforeExpiry() == null) {
-            throw new IllegalArgumentException("Days before expiry must be set in global config");
-        }
-
-        existing.setEnabled(updated.isEnabled());
+        existing.setNotificationsEnabled(updated.isNotificationsEnabled());
         existing.setNotifyAllVendors(updated.isNotifyAllVendors());
         existing.setDaysBeforeExpiry(updated.getDaysBeforeExpiry());
         existing.setAdditionalEmails(updated.getAdditionalEmails());
@@ -113,33 +103,16 @@ public class NotificationConfigService {
         return userConfigRepo.save(existing);
     }
 
-    public List<NotificationVendorConfig> getVendorConfigs(UUID userId) {
-        return vendorConfigRepo.findByUserId(userId);
+    // --- Helper metodai ---
+
+    private NotificationUserConfig findUserConfigOrThrow(UUID userId) {
+        return userConfigRepo.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Global config not found for user: " + userId));
     }
 
-    public NotificationVendorConfig saveVendorConfig(NotificationVendorConfig config) {
-        if (config.getDaysBeforeExpiry() != null && config.getDaysBeforeExpiry() <= 0) {
+    private void validateDaysBeforeExpiry(Integer days) {
+        if (days == null || days <= 0) {
             throw new IllegalArgumentException("Days before expiry must be greater than 0");
         }
-        return vendorConfigRepo.save(config);
-    }
-
-    public NotificationVendorConfig updateVendorConfig(UUID userId, UUID vendorId, NotificationVendorConfig updated) {
-        NotificationVendorConfig existing = vendorConfigRepo.findByUserIdAndVendorId(userId, vendorId)
-                .orElseThrow(() -> new IllegalArgumentException("Vendor config not found"));
-
-        if (updated.getDaysBeforeExpiry() != null && updated.getDaysBeforeExpiry() <= 0) {
-            throw new IllegalArgumentException("Days before expiry must be greater than 0");
-        }
-
-        existing.setEnabled(updated.isEnabled());
-        existing.setDaysBeforeExpiry(updated.getDaysBeforeExpiry());
-        existing.setAdditionalEmails(updated.getAdditionalEmails());
-
-        return vendorConfigRepo.save(existing);
-    }
-
-    public void deleteVendorConfig(UUID userId, UUID vendorId) {
-        vendorConfigRepo.deleteByUserIdAndVendorId(userId, vendorId);
     }
 }
