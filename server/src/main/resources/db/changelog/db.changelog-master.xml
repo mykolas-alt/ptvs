@@ -7,7 +7,8 @@
 
     <include file="changesets/001-auth-schema.xml" relativeToChangelogFile="true"/>
     <include file="changesets/002-seed-admin-user.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/003-notification-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/004-seed-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/changesets/003-notification-user-config.xml"/>
+    <include file="/db/changelog/changesets/004-notification-vendor-config.xml"/>
+    <include file="db/changelog/changesets/005-seed-notification-config.xml"/>
 
 </databaseChangeLog>

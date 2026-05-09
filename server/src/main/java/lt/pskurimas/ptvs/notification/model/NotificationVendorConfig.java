@@ -6,31 +6,31 @@ import lt.pskurimas.ptvs.auth.model.AppUser;
 import java.util.UUID;
 
 @Entity
-@Table(name = "notification_config")
+@Table(name = "notification_vendor_config")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class NotificationConfig {
+public class NotificationVendorConfig {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "service_id")
-    private UUID serviceId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser user;
+
+    @Column(name = "vendor_id", nullable = false)
+    private UUID vendorId;
+
+    @Column(name = "vendor_enabled", nullable = false)
+    private boolean enabled = true;
 
     @Column(name = "days_before_expiry")
     private Integer daysBeforeExpiry;
 
     @Column(name = "additional_emails", columnDefinition = "TEXT")
     private String additionalEmails;
-
-    @Column(name = "enabled")
-    private boolean enabled = true;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private AppUser user;
 }
