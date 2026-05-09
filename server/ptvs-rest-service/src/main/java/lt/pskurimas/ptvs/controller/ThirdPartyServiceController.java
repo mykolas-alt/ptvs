@@ -1,0 +1,91 @@
+package lt.pskurimas.ptvs.controller;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import lt.pskurimas.ptvs.annotation.CurrentUser;
+import lt.pskurimas.ptvs.annotation.RequireRole;
+import lt.pskurimas.ptvs.converter.ServiceConverter;
+import lt.pskurimas.ptvs.model.AppUser;
+import lt.pskurimas.ptvs.model.UserRole;
+import lt.pskurimas.ptvs.model.ServiceStatus;
+import lt.pskurimas.ptvs.dto.request.CreateServiceRequest;
+import lt.pskurimas.ptvs.dto.request.UpdateServiceRequest;
+import lt.pskurimas.ptvs.dto.response.ServiceResponse;
+import lt.pskurimas.ptvs.service.ThirdPartyServiceService;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/services")
+@RequiredArgsConstructor
+public class ThirdPartyServiceController {
+
+    private final ThirdPartyServiceService serviceService;
+    private final ServiceConverter serviceConverter;
+
+    @GetMapping
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<List<ServiceResponse>> getAllServices(@CurrentUser AppUser user) {
+        return ResponseEntity.ok(
+                serviceService.getAllServices().stream()
+                        .map(serviceConverter::toResponse)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    @GetMapping("/{id}")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<ServiceResponse> getServiceById(@PathVariable UUID id,
+                                                          @CurrentUser AppUser user) {
+        return ResponseEntity.ok(serviceConverter.toResponse(serviceService.getServiceById(id)));
+    }
+
+    @GetMapping("/status/{status}")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<List<ServiceResponse>> getServicesByStatus(
+            @PathVariable ServiceStatus status,
+            @CurrentUser AppUser user) {
+        return ResponseEntity.ok(
+                serviceService.getServicesByStatus(status).stream()
+                        .map(serviceConverter::toResponse)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    @PostMapping
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<ServiceResponse> createService(@RequestBody CreateServiceRequest request,
+                                                         @CurrentUser AppUser user) {
+        var service = serviceService.createService(request, user.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(serviceConverter.toResponse(service));
+    }
+
+    @PutMapping("/{id}")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<ServiceResponse> updateService(@PathVariable UUID id,
+                                                         @RequestBody UpdateServiceRequest request,
+                                                         @CurrentUser AppUser user) {
+        var service = serviceService.updateService(id, request);
+        return ResponseEntity.ok(serviceConverter.toResponse(service));
+    }
+
+    @DeleteMapping("/{id}")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<Void> deleteService(@PathVariable UUID id,
+                                              @CurrentUser AppUser user) {
+        serviceService.deleteService(id);
+        return ResponseEntity.noContent().build();
+    }
+}

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="004-envers-audit-tables" author="mykolas">
+        <comment>Create Envers audit tables for tracking changes to contact persons (VendorContact, Employee) and third-party services</comment>
+
+        <createSequence sequenceName="revinfo_seq"
+                        incrementBy="50"
+                        startValue="1"
+                        minValue="1"
+                        maxValue="9223372036854775807"
+                        dataType="bigint"/>
+
+        <createTable tableName="revinfo">
+            <column name="rev" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="revtstmp" type="bigint"/>
+        </createTable>
+
+        <createTable tableName="vendor_contact_aud">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="rev" type="int">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_vendor_contact_aud_rev" references="revinfo(rev)"/>
+            </column>
+            <column name="revend" type="int"/>
+            <column name="revtype" type="tinyint"/>
+            <column name="name" type="varchar(255)"/>
+            <column name="email" type="varchar(255)"/>
+            <column name="phone" type="varchar(20)"/>
+            <column name="address" type="text"/>
+            <column name="vendor_name" type="varchar(255)"/>
+            <column name="department" type="varchar(255)"/>
+        </createTable>
+
+        <createTable tableName="employee_aud">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="rev" type="int">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_employee_aud_rev" references="revinfo(rev)"/>
+            </column>
+            <column name="revend" type="int"/>
+            <column name="revtype" type="tinyint"/>
+            <column name="name" type="varchar(255)"/>
+            <column name="email" type="varchar(255)"/>
+            <column name="phone" type="varchar(20)"/>
+            <column name="address" type="text"/>
+            <column name="department" type="varchar(255)"/>
+            <column name="job_title" type="varchar(255)"/>
+        </createTable>
+
+        <createTable tableName="third_party_service_aud">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="rev" type="int">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_service_aud_rev" references="revinfo(rev)"/>
+            </column>
+            <column name="revend" type="int"/>
+            <column name="revtype" type="tinyint"/>
+            <column name="service_name" type="varchar(255)"/>
+            <column name="monthly_cost" type="decimal(19, 2)"/>
+            <column name="contract_start_date" type="date"/>
+            <column name="contract_end_date" type="date"/>
+            <column name="status" type="varchar(50)"/>
+            <column name="vendor_contact_id" type="uuid"/>
+            <column name="created_by" type="uuid"/>
+        </createTable>
+
+        <createTable tableName="service_responsible_personnel_aud">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="rev" type="int">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_service_aud_rev" references="revinfo(rev)"/>
+            </column>
+            <column name="revend" type="int"/>
+            <column name="revtype" type="tinyint"/>
+            <column name="service_id" type="uuid"/>
+            <column name="employee_id" type="uuid"/>
+        </createTable>
+
+        <createIndex tableName="vendor_contact_aud" indexName="idx_vendor_contact_aud_rev">
+            <column name="rev"/>
+        </createIndex>
+
+        <createIndex tableName="employee_aud" indexName="idx_employee_aud_rev">
+            <column name="rev"/>
+        </createIndex>
+
+        <createIndex tableName="third_party_service_aud" indexName="idx_service_aud_rev">
+            <column name="rev"/>
+        </createIndex>
+
+        <createIndex tableName="service_responsible_personnel_aud" indexName="idx_service_responsible_personnel_aud_rev">
+            <column name="rev"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

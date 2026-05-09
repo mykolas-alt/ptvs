@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="003-contact-person-and-service-schema" author="mykolas">
+        <createTable tableName="vendor_contact">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone" type="varchar(20)"/>
+            <column name="address" type="text"/>
+            <column name="vendor_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="department" type="varchar(255)"/>
+        </createTable>
+
+        <createTable tableName="employee">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone" type="varchar(20)"/>
+            <column name="address" type="text"/>
+            <column name="department" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="job_title" type="varchar(255)"/>
+        </createTable>
+
+        <createTable tableName="third_party_service">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="service_name" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="monthly_cost" type="decimal(19, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contract_start_date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contract_end_date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="vendor_contact_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_service_vendor_contact" references="vendor_contact(id)"/>
+            </column>
+            <column name="created_by" type="uuid"/>
+        </createTable>
+
+        <createTable tableName="service_responsible_personnel">
+            <column name="service_id" type="uuid">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_service_responsible" references="third_party_service(id)" deleteCascade="true"/>
+            </column>
+            <column name="employee_id" type="uuid">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_personnel_employee" references="employee(id)"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="vendor_contact" indexName="idx_vendor_contact_email">
+            <column name="email"/>
+        </createIndex>
+
+        <createIndex tableName="employee" indexName="idx_employee_email">
+            <column name="email"/>
+        </createIndex>
+
+        <createIndex tableName="third_party_service" indexName="idx_service_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="third_party_service" indexName="idx_service_contract_end_date">
+            <column name="contract_end_date"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

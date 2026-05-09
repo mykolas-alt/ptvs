@@ -33,6 +33,7 @@ Usage:
   ./ptvs.sh --stop [--components client,server]
   ./ptvs.sh --startdb [--volume <volume-name>]
   ./ptvs.sh --stopdb
+  ./ptvs.sh --nukedb [--volume <volume-name>]
   ./ptvs.sh --exportdump <dump.dmp> [--volume <volume-name>]
   ./ptvs.sh --importdump <dump.dmp> [--volume <volume-name>]
 
@@ -42,6 +43,7 @@ Options:
   --components LIST     Comma-separated component list (client,server). Default: both.
   --startdb             Start PostgreSQL container.
   --stopdb              Stop PostgreSQL container.
+  --nukedb              Stop container and delete PostgreSQL volume.
   --exportdump FILE     Export PostgreSQL dump in custom format (.dmp).
   --importdump FILE     Import PostgreSQL custom-format dump (.dmp).
   --volume NAME         Docker volume name for PostgreSQL data (default: ptvs-postgres-data).
@@ -179,6 +181,31 @@ stop_db() {
   echo "PostgreSQL container is not running."
 }
 
+nuke_db() {
+  local volume_name="$1"
+  require_command docker
+
+  # Stop the container if running
+  if container_running; then
+    docker stop "$CONTAINER_NAME" >/dev/null
+    echo "Stopped PostgreSQL container: $CONTAINER_NAME"
+  fi
+
+  # Remove the container if it exists
+  if container_exists; then
+    docker rm "$CONTAINER_NAME" >/dev/null
+    echo "Removed PostgreSQL container: $CONTAINER_NAME"
+  fi
+
+  # Remove the volume
+  if docker volume ls --format '{{.Name}}' | grep -Fx "$volume_name" >/dev/null 2>&1; then
+    docker volume rm "$volume_name" >/dev/null
+    echo "Deleted PostgreSQL volume: $volume_name"
+  else
+    echo "PostgreSQL volume does not exist: $volume_name"
+  fi
+}
+
 import_dump() {
   local dump_file="$1"
   local volume_name="$2"
@@ -250,11 +277,17 @@ start_apps() {
   fi
 
   if [[ "$COMPONENTS" == *"server"* ]]; then
-    local mvn_cmd="./mvnw -pl server spring-boot:run"
-    local debug_arg=""
+    local jar_file="$PROJECT_ROOT/server/ptvs-rest-service/target/ptvs-rest-service-0.0.1-SNAPSHOT.jar"
     
+    # Build if JAR doesn't exist
+    if [[ ! -f "$jar_file" ]]; then
+      echo "Building server..."
+      (cd "$PROJECT_ROOT" && ./mvnw clean install -q)
+    fi
+    
+    local java_opts="${MAVEN_OPTS}"
     if [[ "$DEBUG_ENABLED" == "true" ]]; then
-      debug_arg="-Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"
+      java_opts="$java_opts -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
       echo "Starting server with remote debugging enabled (port 5005)"
     fi
     
@@ -262,7 +295,7 @@ start_apps() {
       "server" \
       "$PID_DIR/server.pid" \
       "$LOG_DIR/server.log" \
-      bash -lc "cd '$PROJECT_ROOT' && MAVEN_OPTS='${MAVEN_OPTS}' ./mvnw -pl server spring-boot:run ${debug_arg}"
+      bash -lc "java ${java_opts} -jar '$jar_file'"
   fi
 }
 
@@ -279,6 +312,7 @@ ACTION_START=false
 ACTION_STOP=false
 ACTION_START_DB=false
 ACTION_STOP_DB=false
+ACTION_NUKE_DB=false
 EXPORT_DUMP_FILE=""
 DUMP_FILE=""
 VOLUME_NAME="$DEFAULT_VOLUME"
@@ -305,6 +339,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --stopdb)
       ACTION_STOP_DB=true
+      shift
+      ;;
+    --nukedb)
+      ACTION_NUKE_DB=true
       shift
       ;;
     --importdump)
@@ -334,7 +372,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if ! $ACTION_START && ! $ACTION_STOP && ! $ACTION_START_DB && ! $ACTION_STOP_DB && [[ -z "$DUMP_FILE" ]] && [[ -z "$EXPORT_DUMP_FILE" ]]; then
+if ! $ACTION_START && ! $ACTION_STOP && ! $ACTION_START_DB && ! $ACTION_STOP_DB && ! $ACTION_NUKE_DB && [[ -z "$DUMP_FILE" ]] && [[ -z "$EXPORT_DUMP_FILE" ]]; then
   usage
   exit 1
 fi
@@ -349,9 +387,15 @@ if $ACTION_START_DB && $ACTION_STOP_DB; then
   exit 1
 fi
 
+if $ACTION_STOP_DB && $ACTION_NUKE_DB; then
+  echo "Cannot use --stopdb and --nukedb together." >&2
+  exit 1
+fi
+
 $ACTION_START && start_apps
 $ACTION_STOP && stop_apps
 $ACTION_START_DB && start_db "$VOLUME_NAME"
 $ACTION_STOP_DB && stop_db
+$ACTION_NUKE_DB && nuke_db "$VOLUME_NAME"
 [[ -n "$EXPORT_DUMP_FILE" ]] && export_dump "$EXPORT_DUMP_FILE" "$VOLUME_NAME"
 [[ -n "$DUMP_FILE" ]] && import_dump "$DUMP_FILE" "$VOLUME_NAME"
