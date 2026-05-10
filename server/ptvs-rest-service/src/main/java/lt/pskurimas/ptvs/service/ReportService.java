@@ -40,7 +40,7 @@ public class ReportService {
 
             long activeDays = ChronoUnit.DAYS.between(effectiveStart, effectiveEnd) + 1;
 
-            BigDecimal dailyRate = service.getMonthlyCost().divide(BigDecimal.valueOf(30), 4, RoundingMode.HALF_UP);
+            BigDecimal dailyRate = service.getMonthlyCost().divide(BigDecimal.valueOf(30), 8, RoundingMode.HALF_UP);
             BigDecimal rangeCost = dailyRate.multiply(BigDecimal.valueOf(activeDays)).setScale(2, RoundingMode.HALF_UP);
 
             details.add(ServiceReportDetail.builder()
@@ -59,7 +59,8 @@ public class ReportService {
         Map<String, BigDecimal> costByServiceType = details.stream()
                 .collect(Collectors.toMap(
                         ServiceReportDetail::getServiceName,
-                        ServiceReportDetail::getCalculatedRangeCost));
+                        ServiceReportDetail::getCalculatedRangeCost,
+                        BigDecimal::add)); 
 
         return ServiceReportResponse.builder()
                 .startDate(start)
