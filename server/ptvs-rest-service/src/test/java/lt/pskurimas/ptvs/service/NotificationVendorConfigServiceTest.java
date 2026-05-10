@@ -1,7 +1,7 @@
-package lt.pskurimas.ptvs.notification.service;
+package lt.pskurimas.ptvs.service;
 
-import lt.pskurimas.ptvs.notification.model.NotificationVendorConfig;
-import lt.pskurimas.ptvs.notification.repository.NotificationVendorConfigRepository;
+import lt.pskurimas.ptvs.model.NotificationVendorConfig;
+import lt.pskurimas.ptvs.repository.NotificationVendorConfigRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -68,13 +68,13 @@ class NotificationVendorConfigServiceTest {
     void updateVendorConfig_WhenFound_UpdatesFields() {
         NotificationVendorConfig existing = NotificationVendorConfig.builder()
                 .vendorId(vendorId)
-                .enabled(true)
+                .vendorEnabled(true)
                 .daysBeforeExpiry(30)
                 .additionalEmails("old@imone.lt")
                 .build();
 
         NotificationVendorConfig updated = NotificationVendorConfig.builder()
-                .enabled(false)
+                .vendorEnabled(false)
                 .daysBeforeExpiry(14)
                 .additionalEmails("new@imone.lt")
                 .build();

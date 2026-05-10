@@ -1,9 +1,9 @@
-package lt.pskurimas.ptvs.notification.service;
+package lt.pskurimas.ptvs.service;
 
-import lt.pskurimas.ptvs.notification.model.NotificationUserConfig;
-import lt.pskurimas.ptvs.notification.model.NotificationVendorConfig;
-import lt.pskurimas.ptvs.notification.repository.NotificationUserConfigRepository;
-import lt.pskurimas.ptvs.notification.repository.NotificationVendorConfigRepository;
+import lt.pskurimas.ptvs.model.NotificationUserConfig;
+import lt.pskurimas.ptvs.model.NotificationVendorConfig;
+import lt.pskurimas.ptvs.repository.NotificationUserConfigRepository;
+import lt.pskurimas.ptvs.repository.NotificationVendorConfigRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,8 +29,7 @@ class NotificationUserConfigServiceTest {
     @InjectMocks
     private NotificationUserConfigService service;
 
-    // Test UUID'ai
-    private final UUID userId   = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private final UUID userId = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private final UUID vendorId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
     private final UUID disabledVendorId = UUID.fromString("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
@@ -38,17 +37,16 @@ class NotificationUserConfigServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Bazinis global config – kiekvienam testui
         globalConfig = NotificationUserConfig.builder()
                 .id(UUID.randomUUID())
-                .enabled(true)
+                .notificationsEnabled(true)
                 .notifyAllVendors(false)
                 .daysBeforeExpiry(30)
                 .additionalEmails("boss@imone.lt")
                 .build();
     }
 
-    // --- shouldNotify testai ---
+    // --- shouldNotify tests ---
 
     @Test
     void shouldNotify_WhenGlobalDisabled_ReturnsFalse() {
@@ -78,7 +76,7 @@ class NotificationUserConfigServiceTest {
         NotificationVendorConfig vendorConfig = NotificationVendorConfig.builder()
                 .id(UUID.randomUUID())
                 .vendorId(vendorId)
-                .enabled(true)
+                .vendorEnabled(true)
                 .daysBeforeExpiry(14)
                 .build();
 
@@ -94,7 +92,7 @@ class NotificationUserConfigServiceTest {
         NotificationVendorConfig disabledVendor = NotificationVendorConfig.builder()
                 .id(UUID.randomUUID())
                 .vendorId(disabledVendorId)
-                .enabled(false)
+                .vendorEnabled(false)
                 .build();
 
         when(userConfigRepo.findByUserId(userId)).thenReturn(Optional.of(globalConfig));
@@ -104,7 +102,7 @@ class NotificationUserConfigServiceTest {
         assertFalse(service.shouldNotify(userId, disabledVendorId));
     }
 
-    // --- resolveDaysBeforeExpiry testai ---
+    // --- resolveDaysBeforeExpiry tests ---
 
     @Test
     void resolveDays_WhenVendorHasOverride_ReturnsVendorDays() {
@@ -123,7 +121,7 @@ class NotificationUserConfigServiceTest {
     void resolveDays_WhenVendorHasNoOverride_ReturnsGlobalDays() {
         NotificationVendorConfig vendorConfig = NotificationVendorConfig.builder()
                 .vendorId(vendorId)
-                .daysBeforeExpiry(null) // nėra override'o
+                .daysBeforeExpiry(null)
                 .build();
 
         when(vendorConfigRepo.findByUserIdAndVendorId(userId, vendorId))
@@ -134,7 +132,7 @@ class NotificationUserConfigServiceTest {
         assertEquals(30, service.resolveDaysBeforeExpiry(userId, vendorId));
     }
 
-    // --- resolveAdditionalEmails testai ---
+    // --- resolveAdditionalEmails tests ---
 
     @Test
     void resolveEmails_WhenVendorHasOverride_ReturnsVendorEmails() {

@@ -1,9 +1,9 @@
-package lt.pskurimas.ptvs.notification.service;
+package lt.pskurimas.ptvs.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lt.pskurimas.ptvs.notification.model.NotificationVendorConfig;
-import lt.pskurimas.ptvs.notification.repository.NotificationVendorConfigRepository;
+import lt.pskurimas.ptvs.model.NotificationVendorConfig;
+import lt.pskurimas.ptvs.repository.NotificationVendorConfigRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
