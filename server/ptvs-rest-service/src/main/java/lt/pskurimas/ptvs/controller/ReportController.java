@@ -22,7 +22,7 @@ public class ReportController {
 
     private final ReportService reportService;
 
-    @PostMapping
+    @PostMapping("cost-report")
     @RequireRole(UserRole.ADMIN)
     public ResponseEntity<ServiceReportResponse> generateReport(
             @RequestBody ServiceReportRequest request,
