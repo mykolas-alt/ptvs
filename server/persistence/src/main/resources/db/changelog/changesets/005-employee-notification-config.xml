@@ -5,15 +5,15 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="003-create-notification-user-config" author="Ignas">
-        <createTable tableName="notification_user_config">
+    <changeSet id="003-create-employee-notification-config" author="Ignas">
+        <createTable tableName="employee_notification_config">
             <column name="id" type="UUID">
                 <constraints nullable="false" primaryKey="true"
-                             primaryKeyName="pk_notification_user_config"/>
+                             primaryKeyName="pk_employee_notification_config"/>
             </column>
-            <column name="user_id" type="UUID">
+            <column name="employee_id" type="UUID">
                 <constraints nullable="false" unique="true"
-                             uniqueConstraintName="uk_notification_user_config_user"/>
+                             uniqueConstraintName="uk_employee_notification_config_employee"/>
             </column>
             <column name="notifications_enabled" type="BOOLEAN" defaultValueBoolean="false">
                 <constraints nullable="false"/>
@@ -26,12 +26,12 @@
         </createTable>
 
         <addForeignKeyConstraint
-                baseTableName="notification_user_config"
-                baseColumnNames="user_id"
-                referencedTableName="app_user"
+                baseTableName="employee_notification_config"
+                baseColumnNames="employee_id"
+                referencedTableName="employee"
                 referencedColumnNames="id"
                 onDelete="CASCADE"
-                constraintName="fk_notification_user_config_user"/>
+                constraintName="fk_employee_notification_config_employee"/>
     </changeSet>
 
 </databaseChangeLog>

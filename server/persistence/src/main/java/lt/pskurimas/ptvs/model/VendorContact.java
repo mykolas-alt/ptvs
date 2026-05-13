@@ -25,5 +25,4 @@ public class VendorContact extends ContactPerson {
 
     @Column(name = "department")
     private String department;
-
 }
