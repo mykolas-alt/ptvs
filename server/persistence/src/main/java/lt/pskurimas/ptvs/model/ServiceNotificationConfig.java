@@ -2,31 +2,31 @@ package lt.pskurimas.ptvs.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import lt.pskurimas.ptvs.model.AppUser;
+
 import java.util.UUID;
 
 @Entity
-@Table(name = "notification_vendor_config")
+@Table(name = "service_notification_config")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class NotificationVendorConfig {
+public class ServiceNotificationConfig {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private AppUser user;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
 
-    @Column(name = "vendor_id", nullable = false)
-    private UUID vendorId;
+    @Column(name = "service_id", nullable = false)
+    private UUID serviceId;
 
-    @Column(name = "vendor_enabled", nullable = false)
-    private boolean vendorEnabled = true;
+    @Column(name = "service_enabled", nullable = false)
+    private boolean serviceEnabled = true;
 
     @Column(name = "days_before_expiry")
     private Integer daysBeforeExpiry;
