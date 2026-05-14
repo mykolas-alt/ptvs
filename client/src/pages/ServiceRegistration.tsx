@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
 import '../styles/ServiceRegistration.css'
 
-type Status = 'active' | 'pending' | 'ended'
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 type FormData = {
   name: string
@@ -12,11 +12,11 @@ type FormData = {
   price: string
   startDate: string
   endDate: string
-  status: Status | ''
   contactName: string
   contactEmail: string
   contactPhone: string
   responsibleName: string
+  responsibleEmail: string
   responsibleDepartment: string
 }
 
@@ -44,11 +44,11 @@ const EMPTY: FormData = {
   price: '',
   startDate: '',
   endDate: '',
-  status: '',
   contactName: '',
   contactEmail: '',
   contactPhone: '',
   responsibleName: '',
+  responsibleEmail: '',
   responsibleDepartment: '',
 }
 
@@ -67,7 +67,6 @@ function validate(data: FormData): Errors {
   } else if (data.startDate && data.endDate <= data.startDate) {
     e.endDate = 'End date must be after start date.'
   }
-  if (!data.status) e.status = 'Status is required.'
   if (!data.contactName.trim()) e.contactName = 'Contact name is required.'
   if (!data.contactEmail.trim()) {
     e.contactEmail = 'Contact email is required.'
@@ -76,6 +75,11 @@ function validate(data: FormData): Errors {
   }
   if (!data.contactPhone.trim()) e.contactPhone = 'Contact phone is required.'
   if (!data.responsibleName.trim()) e.responsibleName = 'Responsible person name is required.'
+  if (!data.responsibleEmail.trim()) {
+    e.responsibleEmail = 'Responsible person email is required.'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.responsibleEmail)) {
+    e.responsibleEmail = 'Responsible person email is invalid.'
+  }
   if (!data.responsibleDepartment.trim()) e.responsibleDepartment = 'Department is required.'
   return e
 }
@@ -85,6 +89,8 @@ export function ServiceRegistration() {
   const [form, setForm] = useState<FormData>(EMPTY)
   const [errors, setErrors] = useState<Errors>({})
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   if (isLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
@@ -95,14 +101,69 @@ export function ServiceRegistration() {
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }))
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const errs = validate(form)
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
       return
     }
-    setSubmitted(true)
+
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    const token = localStorage.getItem(tokenStorageKey)
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    }
+
+    try {
+      const vcRes = await fetch(`${apiBaseUrl}/vendor-contacts`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: form.contactName,
+          email: form.contactEmail,
+          phone: form.contactPhone,
+          vendorName: form.vendor,
+        }),
+      })
+      if (!vcRes.ok) throw new Error('Failed to create vendor contact.')
+      const vc = await vcRes.json() as { id: string }
+
+      const empRes = await fetch(`${apiBaseUrl}/employees`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: form.responsibleName,
+          email: form.responsibleEmail,
+          department: form.responsibleDepartment,
+        }),
+      })
+      if (!empRes.ok) throw new Error('Failed to create employee record.')
+      const emp = await empRes.json() as { id: string }
+
+      const svcRes = await fetch(`${apiBaseUrl}/services`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          serviceName: form.name,
+          monthlyCost: Number(form.price),
+          contractStartDate: form.startDate,
+          contractEndDate: form.endDate,
+          vendorContactId: vc.id,
+          responsiblePersonnelIds: [emp.id],
+        }),
+      })
+      if (!svcRes.ok) throw new Error('Failed to register service.')
+
+      setSubmitted(true)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Registration failed.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -119,7 +180,7 @@ export function ServiceRegistration() {
             </p>
             <button
               className="btn-primary"
-              onClick={() => { setForm(EMPTY); setErrors({}); setSubmitted(false) }}
+              onClick={() => { setForm(EMPTY); setErrors({}); setSubmitted(false); setSubmitError(null) }}
             >
               Register Another
             </button>
@@ -170,18 +231,6 @@ export function ServiceRegistration() {
                   />
                 </Field>
               </div>
-              <Field label="Status" error={errors.status}>
-                <select
-                  value={form.status}
-                  onChange={e => set('status', e.target.value)}
-                  className={form.status === '' ? 'select-placeholder' : ''}
-                >
-                  <option value="" disabled>Select status</option>
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="ended">Ended</option>
-                </select>
-              </Field>
             </fieldset>
 
             <fieldset>
@@ -222,6 +271,14 @@ export function ServiceRegistration() {
                   placeholder="e.g. Alice Johnson"
                 />
               </Field>
+              <Field label="Responsible Person Email" error={errors.responsibleEmail}>
+                <input
+                  type="email"
+                  value={form.responsibleEmail}
+                  onChange={e => set('responsibleEmail', e.target.value)}
+                  placeholder="e.g. alice@company.com"
+                />
+              </Field>
               <Field label="Department" error={errors.responsibleDepartment}>
                 <input
                   type="text"
@@ -232,8 +289,10 @@ export function ServiceRegistration() {
               </Field>
             </fieldset>
 
-            <button type="submit" className="btn-primary btn-submit">
-              Register Service
+            {submitError && <p className="field-error">{submitError}</p>}
+
+            <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Registering...' : 'Register Service'}
             </button>
           </form>
         )}

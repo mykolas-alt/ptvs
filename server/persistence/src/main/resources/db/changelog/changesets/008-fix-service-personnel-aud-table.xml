@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="008-fix-service-personnel-aud-table" author="augustas">
+        <sql splitStatements="true">
+            DROP TABLE IF EXISTS service_responsible_personnel_aud CASCADE;
+
+            CREATE TABLE service_responsible_personnel_aud (
+                rev         integer  NOT NULL REFERENCES revinfo(rev),
+                revend      integer,
+                revtype     smallint,
+                service_id  uuid     NOT NULL,
+                employee_id uuid     NOT NULL,
+                PRIMARY KEY (rev, service_id, employee_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_service_responsible_personnel_aud_rev
+                ON service_responsible_personnel_aud (rev);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+                DROP TABLE IF EXISTS service_responsible_personnel_aud CASCADE;
+
+                CREATE TABLE service_responsible_personnel_aud (
+                    id          uuid     NOT NULL,
+                    rev         integer  NOT NULL REFERENCES revinfo(rev),
+                    revend      integer,
+                    revtype     smallint,
+                    service_id  uuid,
+                    employee_id uuid,
+                    PRIMARY KEY (id, rev)
+                );
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

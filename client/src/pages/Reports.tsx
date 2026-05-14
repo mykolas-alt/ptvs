@@ -1,51 +1,63 @@
 import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
 import '../styles/Reports.css'
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
+
+type ReportDetail = {
+  serviceName: string
+  vendorName: string
+  monthlyRate: number
+  calculatedRangeCost: number
+  daysActiveInRange: number
+}
+
+type ReportData = {
+  startDate: string
+  endDate: string
+  totalCost: number
+  costByServiceType: Record<string, number>
+  details: ReportDetail[]
+}
 
 type Report = {
   id: string
   startDate: string
   endDate: string
   generatedAt: string
-  content: string
+  data: ReportData
 }
 
-function buildReportContent(start: string, end: string): string {
-  return `THIRD-PARTY SERVICE REPORT
-Period: ${start} – ${end}
-Generated: ${new Date().toLocaleString()}
+function formatReportContent(data: ReportData): string {
+  const lines: string[] = [
+    'THIRD-PARTY SERVICE REPORT',
+    `Period: ${data.startDate} – ${data.endDate}`,
+    '',
+    'SUMMARY',
+    '-------',
+    `Total Cost: $${Number(data.totalCost).toLocaleString()}`,
+  ]
 
-SUMMARY
--------
-Active Services:   2
-Ended Services:    2
-Pending Services:  1
-Total Monthly Cost: $1,900
+  if (Object.keys(data.costByServiceType).length > 0) {
+    lines.push('', 'COST BY TYPE', '------------')
+    for (const [type, cost] of Object.entries(data.costByServiceType)) {
+      lines.push(`${type}: $${Number(cost).toLocaleString()}`)
+    }
+  }
 
-SERVICES IN PERIOD
-------------------
-1. AWS Cloud (Amazon Web Services)
-   Status: Active  |  Monthly Cost: $1,200
-   Contract: 2023-01-15 – 2025-01-14
+  if (data.details.length > 0) {
+    lines.push('', 'SERVICES IN PERIOD', '------------------')
+    data.details.forEach((d, i) => {
+      lines.push(
+        `${i + 1}. ${d.serviceName} (${d.vendorName})`,
+        `   Monthly Rate: $${Number(d.monthlyRate).toLocaleString()}  |  Days Active: ${d.daysActiveInRange}  |  Period Cost: $${Number(d.calculatedRangeCost).toLocaleString()}`,
+      )
+    })
+  }
 
-2. GitHub Enterprise (GitHub Inc.)
-   Status: Ended  |  Monthly Cost: $250
-   Contract: 2022-06-01 – 2024-05-31
-
-3. Slack Business+ (Salesforce / Slack)
-   Status: Pending  |  Monthly Cost: $180
-   Contract: 2026-03-01 – 2027-02-28
-
-4. Jira Cloud (Atlassian)
-   Status: Active  |  Monthly Cost: $320
-   Contract: 2024-04-01 – 2026-03-31
-
-5. Zoom Pro (Zoom Video Communications)
-   Status: Ended  |  Monthly Cost: $150
-   Contract: 2021-09-01 – 2023-08-31
-
-END OF REPORT`
+  lines.push('', 'END OF REPORT')
+  return lines.join('\n')
 }
 
 export function Reports() {
@@ -56,14 +68,16 @@ export function Reports() {
   const [activeReport, setActiveReport] = useState<Report | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [dateError, setDateError] = useState<string | null>(null)
+  const [generateError, setGenerateError] = useState<string | null>(null)
   const [duplicateId, setDuplicateId] = useState<string | null>(null)
 
   if (isLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
     setDateError(null)
+    setGenerateError(null)
     setDuplicateId(null)
 
     if (!startDate || !endDate) {
@@ -83,18 +97,34 @@ export function Reports() {
     }
 
     setIsGenerating(true)
-    setTimeout(() => {
+
+    try {
+      const token = localStorage.getItem(tokenStorageKey)
+      const res = await fetch(`${apiBaseUrl}/reports/cost-report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ startDate, endDate }),
+      })
+      if (!res.ok) throw new Error('Failed to generate report.')
+      const data = await res.json() as ReportData
+
       const report: Report = {
         id: crypto.randomUUID(),
         startDate,
         endDate,
         generatedAt: new Date().toLocaleString(),
-        content: buildReportContent(startDate, endDate),
+        data,
       }
       setReports(prev => [report, ...prev])
       setActiveReport(report)
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : 'Report generation failed.')
+    } finally {
       setIsGenerating(false)
-    }, 800)
+    }
   }
 
   return (
@@ -113,7 +143,7 @@ export function Reports() {
                 id="report-start"
                 type="date"
                 value={startDate}
-                onChange={e => { setStartDate(e.target.value); setDateError(null); setDuplicateId(null) }}
+                onChange={e => { setStartDate(e.target.value); setDateError(null); setGenerateError(null); setDuplicateId(null) }}
               />
             </div>
             <div className="form-field">
@@ -122,7 +152,7 @@ export function Reports() {
                 id="report-end"
                 type="date"
                 value={endDate}
-                onChange={e => { setEndDate(e.target.value); setDateError(null); setDuplicateId(null) }}
+                onChange={e => { setEndDate(e.target.value); setDateError(null); setGenerateError(null); setDuplicateId(null) }}
               />
             </div>
             <button className="btn-primary" onClick={handleGenerate} disabled={isGenerating}>
@@ -130,6 +160,7 @@ export function Reports() {
             </button>
           </div>
           {dateError && <p className="field-error">{dateError}</p>}
+          {generateError && <p className="field-error">{generateError}</p>}
           {duplicateId && (
             <p className="duplicate-notice">
               A report for this period was already generated.{' '}
@@ -186,7 +217,7 @@ export function Reports() {
               <button className="modal-close" onClick={() => setActiveReport(null)}>✕</button>
             </div>
             <div className="modal-body">
-              <pre className="report-content">{activeReport.content}</pre>
+              <pre className="report-content">{formatReportContent(activeReport.data)}</pre>
             </div>
           </div>
         </div>
