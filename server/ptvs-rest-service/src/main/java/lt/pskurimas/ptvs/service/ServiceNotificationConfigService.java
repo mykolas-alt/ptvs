@@ -15,7 +15,7 @@ public class ServiceNotificationConfigService {
 
     private final ServiceNotificationConfigRepository serviceConfigRepo;
 
-    public List<ServiceNotificationConfig> getServiceConfigs(Employee employeeId) {
+    public List<ServiceNotificationConfig> getServiceConfigs(UUID employeeId) {
         return serviceConfigRepo.findByEmployeeId(employeeId);
     }
 
@@ -26,7 +26,7 @@ public class ServiceNotificationConfigService {
     }
 
     @Transactional
-    public ServiceNotificationConfig updateServiceConfig(Employee employeeId, UUID serviceId, ServiceNotificationConfig updated) {
+    public ServiceNotificationConfig updateServiceConfig(UUID employeeId, UUID serviceId, ServiceNotificationConfig updated) {
         ServiceNotificationConfig existing = findServiceConfigOrThrow(employeeId, serviceId);
         validateDaysBeforeExpiry(updated.getDaysBeforeExpiry());
 
@@ -38,13 +38,13 @@ public class ServiceNotificationConfigService {
     }
 
     @Transactional
-    public void deleteServiceConfig(Employee employeeId, UUID serviceId) {
+    public void deleteServiceConfig(UUID employeeId, UUID serviceId) {
         serviceConfigRepo.deleteByEmployeeIdAndServiceId(employeeId, serviceId);
     }
 
     // --- Helper metodai ---
 
-    private ServiceNotificationConfig findServiceConfigOrThrow(Employee employeeId, UUID serviceId) {
+    private ServiceNotificationConfig findServiceConfigOrThrow(UUID employeeId, UUID serviceId) {
         return serviceConfigRepo.findByEmployeeIdAndServiceId(employeeId, serviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Service config not found for serviceId: " + serviceId));
     }
