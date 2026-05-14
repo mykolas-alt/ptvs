@@ -16,6 +16,18 @@ spring:
       ddl-auto: validate
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-master.xml
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:ptvssystem@gmail.com}
+    password: ${MAIL_PASSWORD:asbo lzhb zajn ijxo}
+
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 auth:
   jwt-secret: ${AUTH_JWT_SECRET:ptvs-local-jwt-secret-key-change-in-production-min-32chars}
   jwt-expiration-seconds: ${AUTH_JWT_EXPIRATION_SECONDS:3600}
