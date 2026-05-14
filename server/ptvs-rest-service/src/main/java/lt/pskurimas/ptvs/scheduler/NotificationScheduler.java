@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.service.ThirdPartyServiceService;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
+import lt.pskurimas.ptvs.model.Employee;
 import lt.pskurimas.ptvs.model.ServiceStatus;
 import lt.pskurimas.ptvs.dto.response.EmployeeNotificationResult;
 import lt.pskurimas.ptvs.service.EmployeeNotificationConfigService;
@@ -48,68 +49,49 @@ public class NotificationScheduler {
         for (ThirdPartyService service : services) {
 
 
-            UUID serviceId = service.getId(); 
+            UUID serviceId = service.getId();
 
-            List<EmployeeNotificationResult> notificationDetails = EmployeeNotificationConfigService.getServiceNotificationDetails(service);
+            for (Employee employee : service.getResponsiblePersonnel()) {
+                
+                UUID employeeId = employee.getId();
+            
+                EmployeeNotificationResult notificationDetails = EmployeeNotificationConfigService.getServiceNotificationDetails(employeeId, serviceId);
 
-            //UUID employeeId = notificationDetails.getEmployeeId();
-
-
-            try {
-
-                // Check if notifications are enabledd
-                boolean shouldNotify = EmployeeNotificationConfigService.shouldNotify(employeeId, serviceId);
-
-
-                if (!shouldNotify) {
+                if(notificationDetails == null) {
                     continue;
                 }
 
+                try {
 
-                // Resolve notification days
-                Integer daysBefore = EmployeeNotificationConfigService.resolveDaysBeforeExpiry(employeeId, serviceId);
+                    // Calculate remaining days
+                    long daysRemaining = ChronoUnit.DAYS.between(today, service.getContractEndDate());
+
+                    // Check if today matches configured reminder day
+                    if (daysRemaining != notificationDetails.getDaysBeforeExpiry()) {
+                        continue;
+                    }
+
+                    // Send email
+                    emailDispatchService.sendExpirationNotification(
+                            notificationDetails.getEmployeeEmail(),
+                            service.getServiceName(),
+                            service.getVendorContact().getName(),
+                            service.getContractEndDate(),
+                            notificationDetails.getDaysBeforeExpiry(),
+                            notificationDetails.getAdditionalEmails()
+                    );
 
 
-                if (daysBefore == null) {
-                    continue;
+                    log.info("Notification sent: employee={}, service={}", employeeId, serviceId);
+
+
+                } catch (Exception e) {
+
+
+                    log.error("Failed sending notification for service={}", service.getId(), e);
                 }
-
-
-                // Calculate remaining days
-                long daysRemaining = ChronoUnit.DAYS.between(today, service.getContractEndDate());
-
-
-                // Check if today matches configured reminder day
-                if (daysRemaining != daysBefore) {
-                    continue;
-                }
-
-
-                // Resolve additional emails
-                String additionalEmails = EmployeeNotificationConfigService.resolveAdditionalEmails(employeeId, serviceId);
-
-
-                // Send email
-                emailDispatchService.sendExpirationNotification(
-                        notificationDetails.getEmployeeEmail(),
-                        service.getServiceName(),
-                        service.getVendorContact().getName(),
-                        service.getContractEndDate(),
-                        notificationDetails.getDaysBeforeExpiry(),
-                        additionalEmails
-                );
-
-
-                log.info("Notification sent: employee={}, service={}", employeeId, serviceId);
-
-
-            } catch (Exception e) {
-
-
-                log.error("Failed sending notification for service={}", service.getId(), e);
             }
         }
-
 
         log.info("Expiration notification scheduler completed");
     }

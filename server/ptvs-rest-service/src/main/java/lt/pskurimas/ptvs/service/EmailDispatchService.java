@@ -8,7 +8,6 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service 
@@ -23,7 +22,7 @@ public class EmailDispatchService {
             String vendorName,
             LocalDate expirationDate,
             Integer daysRemaining,
-            String additionalEmails
+            List<String> additionalEmails
     ) {
 
         try {
@@ -35,14 +34,8 @@ public class EmailDispatchService {
             // Main recipient
             helper.setTo(employeeEmail);
 
-            // Additional recipients
-            if (additionalEmails != null && !additionalEmails.isBlank()) {
-
-                List<String> emails = parseEmails(additionalEmails);
-
-                if (!emails.isEmpty()) {
-                    helper.setCc(emails.toArray(new String[0]));
-                }
+            if (!additionalEmails.isEmpty()) {
+                helper.setCc(additionalEmails.toArray(new String[0]));
             }
 
             helper.setSubject("Service Expiration Reminder");
@@ -112,21 +105,4 @@ public class EmailDispatchService {
                 );
     }
 
-    private List<String> parseEmails(String additionalEmails) {
-
-        List<String> result = new ArrayList<>();
-
-        String[] split = additionalEmails.split(",");
-
-        for (String email : split) {
-
-            String trimmed = email.trim();
-
-            if (!trimmed.isBlank()) {
-                result.add(trimmed);
-            }
-        }
-
-        return result;
-    }
 }
