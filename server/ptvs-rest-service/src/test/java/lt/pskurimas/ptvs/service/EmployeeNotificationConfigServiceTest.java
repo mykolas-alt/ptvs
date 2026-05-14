@@ -14,12 +14,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
 import java.util.Set;
-
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,6 +33,7 @@ class EmployeeNotificationConfigServiceTest {
     private EmployeeNotificationConfigService service;
 
     private Employee employee;
+    private final UUID employeeUUID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private final UUID serviceId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
     private final UUID disabledServiceId = UUID.fromString("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
@@ -44,6 +42,7 @@ class EmployeeNotificationConfigServiceTest {
     @BeforeEach
     void setUp() {
         employee = new Employee();
+        employee.setId(employeeUUID);
         employee.setDepartment("IT");
 
         globalConfig = EmployeeNotificationConfig.builder()
@@ -61,26 +60,24 @@ class EmployeeNotificationConfigServiceTest {
     @Test
     void shouldNotify_WhenGlobalDisabled_ReturnsFalse() {
         globalConfig.setNotificationsEnabled(false);
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
 
-        assertFalse(service.shouldNotify(employee, serviceId));
+        assertFalse(service.shouldNotify(employeeUUID, serviceId));
     }
 
     @Test
-
-
     void shouldNotify_WhenGlobalConfigMissing_ReturnsFalse() {
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.empty());
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.empty());
 
-        assertFalse(service.shouldNotify(employee, serviceId));
+        assertFalse(service.shouldNotify(employeeUUID, serviceId));
     }
 
     @Test
     void shouldNotify_WhenNotifyAllTrue_ReturnsTrue() {
         globalConfig.setNotifyAllServices(true);
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
 
-        assertTrue(service.shouldNotify(employee, serviceId));
+        assertTrue(service.shouldNotify(employeeUUID, serviceId));
     }
 
     @Test
@@ -93,11 +90,11 @@ class EmployeeNotificationConfigServiceTest {
                 .daysBeforeExpiry(14)
                 .build();
 
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeUUID, serviceId))
                 .thenReturn(Optional.of(serviceConfig));
 
-        assertTrue(service.shouldNotify(employee, serviceId));
+        assertTrue(service.shouldNotify(employeeUUID, serviceId));
     }
 
     @Test
@@ -109,18 +106,18 @@ class EmployeeNotificationConfigServiceTest {
                 .serviceEnabled(false)
                 .build();
 
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, disabledServiceId))
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeUUID, disabledServiceId))
                 .thenReturn(Optional.of(disabledService));
 
-        assertFalse(service.shouldNotify(employee, disabledServiceId));
+        assertFalse(service.shouldNotify(employeeUUID, disabledServiceId));
     }
 
     // --- resolveDaysBeforeExpiry tests ---
 
     @Test
     void resolveDays_WhenServiceHasOverride_ReturnsServiceDays() {
-        globalConfig.setNotifyAllServices(false); // Important: notifyAll must be false to check service config
+        globalConfig.setNotifyAllServices(false);
 
         ServiceNotificationConfig serviceConfig = ServiceNotificationConfig.builder()
                 .employee(employee)
@@ -128,12 +125,11 @@ class EmployeeNotificationConfigServiceTest {
                 .daysBeforeExpiry(14)
                 .build();
 
-        when(employeeConfigRepo.findByEmployeeId(employee))
-                .thenReturn(Optional.of(globalConfig));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeUUID, serviceId))
                 .thenReturn(Optional.of(serviceConfig));
 
-        assertEquals(14, service.resolveDaysBeforeExpiry(employee, serviceId));
+        assertEquals(14, service.resolveDaysBeforeExpiry(employeeUUID, serviceId));
     }
 
     @Test
@@ -146,12 +142,11 @@ class EmployeeNotificationConfigServiceTest {
                 .daysBeforeExpiry(null)
                 .build();
 
-        when(employeeConfigRepo.findByEmployeeId(employee))
-                .thenReturn(Optional.of(globalConfig));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeUUID, serviceId))
                 .thenReturn(Optional.of(serviceConfig));
 
-        assertEquals(30, service.resolveDaysBeforeExpiry(employee, serviceId));
+        assertEquals(30, service.resolveDaysBeforeExpiry(employeeUUID, serviceId));
     }
 
     // --- resolveAdditionalEmails tests ---
@@ -164,10 +159,10 @@ class EmployeeNotificationConfigServiceTest {
                 .additionalEmails("service@imone.lt")
                 .build();
 
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeUUID, serviceId))
                 .thenReturn(Optional.of(serviceConfig));
 
-        assertEquals("service@imone.lt", service.resolveAdditionalEmails(employee, serviceId));
+        assertEquals("service@imone.lt", service.resolveAdditionalEmails(employeeUUID, serviceId));
     }
 
     @Test
@@ -178,12 +173,11 @@ class EmployeeNotificationConfigServiceTest {
                 .additionalEmails(null)
                 .build();
 
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeUUID, serviceId))
                 .thenReturn(Optional.of(serviceConfig));
-        when(employeeConfigRepo.findByEmployeeId(employee))
-                .thenReturn(Optional.of(globalConfig));
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
 
-        assertEquals("boss@imone.lt", service.resolveAdditionalEmails(employee, serviceId));
+        assertEquals("boss@imone.lt", service.resolveAdditionalEmails(employeeUUID, serviceId));
     }
 
     // --- CRUD tests ---
@@ -202,9 +196,9 @@ class EmployeeNotificationConfigServiceTest {
 
     @Test
     void updateUserConfig_WhenNotFound_ThrowsException() {
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.empty());
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class,
-                () -> service.updateEmployeeConfig(employee, globalConfig));
+                () -> service.updateEmployeeConfig(employeeUUID, globalConfig));
     }
 
     @Test
@@ -216,10 +210,10 @@ class EmployeeNotificationConfigServiceTest {
                 .additionalEmails("new@imone.lt")
                 .build();
 
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
         when(employeeConfigRepo.save(globalConfig)).thenReturn(globalConfig);
 
-        EmployeeNotificationConfig result = service.updateEmployeeConfig(employee, updated);
+        EmployeeNotificationConfig result = service.updateEmployeeConfig(employeeUUID, updated);
 
         assertFalse(result.isNotificationsEnabled());
         assertTrue(result.isNotifyAllServices());
@@ -230,19 +224,14 @@ class EmployeeNotificationConfigServiceTest {
     // --- getNotificationRecipientsForService tests ---
 
     @Test
-    void getNotificationRecipients_WhenNotificationsDisabled_ReturnsEmpty() {
+    void getNotificationRecipients_WhenNotificationsDisabled_ReturnsNull() {
         globalConfig.setNotificationsEnabled(false);
 
-        ThirdPartyService thirdPartyService = ThirdPartyService.builder()
-                .id(UUID.randomUUID())
-                .responsiblePersonnel(Set.of(employee))
-                .build();
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
 
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
+        EmployeeNotificationResult result = service.getServiceNotificationDetails(employeeUUID, serviceId);
 
-        List<EmployeeNotificationResult> results = service.getServiceNotificationDetails(thirdPartyService);
-
-        assertTrue(results.isEmpty());
+        assertNull(result);
     }
 
     @Test
@@ -252,21 +241,13 @@ class EmployeeNotificationConfigServiceTest {
         globalConfig.setDaysBeforeExpiry(30);
         globalConfig.setAdditionalEmails("boss@imone.lt");
 
-        ThirdPartyService thirdPartyService = ThirdPartyService.builder()
-                .id(UUID.randomUUID())
-                .responsiblePersonnel(Set.of(employee))
-                .build();
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
+        when(employeeConfigRepo.findEmployeeEmailByEmployeeId(employeeUUID)).thenReturn(Optional.of("worker@imone.lt"));
 
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, thirdPartyService.getId()))
-                .thenReturn(Optional.empty());
+        EmployeeNotificationResult result = service.getServiceNotificationDetails(employeeUUID, serviceId);
 
-        List<EmployeeNotificationResult> results = service.getServiceNotificationDetails(thirdPartyService);
-
-        assertEquals(1, results.size());
-
-        EmployeeNotificationResult result = results.get(0);
-        assertEquals(employee.getId(), result.getEmployeeId());
+        assertNotNull(result);
+        assertEquals(employeeUUID, result.getEmployeeId());
         assertEquals("worker@imone.lt", result.getEmployeeEmail());
         assertEquals(30, result.getDaysBeforeExpiry());
         assertEquals(1, result.getAdditionalEmails().size());
@@ -288,21 +269,15 @@ class EmployeeNotificationConfigServiceTest {
                 .additionalEmails("team@imone.lt, cto@imone.lt")
                 .build();
 
-        ThirdPartyService thirdPartyService = ThirdPartyService.builder()
-                .id(serviceId)
-                .responsiblePersonnel(Set.of(employee))
-                .build();
-
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
+        when(employeeConfigRepo.findEmployeeEmailByEmployeeId(employeeUUID)).thenReturn(Optional.of("worker@imone.lt"));
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeUUID, serviceId))
                 .thenReturn(Optional.of(serviceConfig));
 
-        List<EmployeeNotificationResult> results = service.getServiceNotificationDetails(thirdPartyService);
+        EmployeeNotificationResult result = service.getServiceNotificationDetails(employeeUUID, serviceId);
 
-        assertEquals(1, results.size());
-
-        EmployeeNotificationResult result = results.get(0);
-        assertEquals(employee.getId(), result.getEmployeeId());
+        assertNotNull(result);
+        assertEquals(employeeUUID, result.getEmployeeId());
         assertEquals("worker@imone.lt", result.getEmployeeEmail());
         assertEquals(7, result.getDaysBeforeExpiry());
         assertEquals(2, result.getAdditionalEmails().size());
@@ -311,7 +286,7 @@ class EmployeeNotificationConfigServiceTest {
     }
 
     @Test
-    void getNotificationRecipients_WhenServiceDisabled_ReturnsEmpty() {
+    void getNotificationRecipients_WhenServiceDisabled_ReturnsNull() {
         globalConfig.setNotifyAllServices(false);
 
         ServiceNotificationConfig serviceConfig = ServiceNotificationConfig.builder()
@@ -320,77 +295,28 @@ class EmployeeNotificationConfigServiceTest {
                 .serviceEnabled(false)
                 .build();
 
-        ThirdPartyService thirdPartyService = ThirdPartyService.builder()
-                .id(serviceId)
-                .responsiblePersonnel(Set.of(employee))
-                .build();
-
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeUUID, serviceId))
                 .thenReturn(Optional.of(serviceConfig));
 
-        List<EmployeeNotificationResult> results = service.getServiceNotificationDetails(thirdPartyService);
+        EmployeeNotificationResult result = service.getServiceNotificationDetails(employeeUUID, serviceId);
 
-        assertTrue(results.isEmpty());
+        assertNull(result);
     }
 
     @Test
-    void getNotificationRecipients_WhenMultipleEmployees_ReturnsOnlyNotified() {
-        Employee employee1 = new Employee();
-        employee1.setDepartment("IT");
-        employee1.setEmail("worker1@imone.lt");
-
-        Employee employee2 = new Employee();
-        employee2.setDepartment("HR");
-        employee2.setEmail("worker2@imone.lt");
-
-        EmployeeNotificationConfig config1 = EmployeeNotificationConfig.builder()
-                .employee(employee1)
-                .notificationsEnabled(true)
-                .notifyAllServices(true)
-                .daysBeforeExpiry(30)
-                .build();
-
-        EmployeeNotificationConfig config2 = EmployeeNotificationConfig.builder()
-                .employee(employee2)
-                .notificationsEnabled(false)
-                .build();
-
-        ThirdPartyService thirdPartyService = ThirdPartyService.builder()
-                .id(serviceId)
-                .responsiblePersonnel(Set.of(employee1, employee2))
-                .build();
-
-        when(employeeConfigRepo.findByEmployeeId(employee1)).thenReturn(Optional.of(config1));
-        when(employeeConfigRepo.findByEmployeeId(employee2)).thenReturn(Optional.of(config2));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee1, serviceId))
-                .thenReturn(Optional.empty());
-
-        List<EmployeeNotificationResult> results = service.getServiceNotificationDetails(thirdPartyService);
-
-        assertEquals(1, results.size());
-        assertEquals("worker1@imone.lt", results.get(0).getEmployeeEmail());
-    }
-
-    @Test
-    void getNotificationRecipients_WhenNoAdditionalEmails_ReturnsEmptyList() {
+    void getNotificationRecipients_WhenNoAdditionalEmails_ReturnsEmptyAdditionalEmailsList() {
         employee.setEmail("worker@imone.lt");
         globalConfig.setNotifyAllServices(true);
         globalConfig.setDaysBeforeExpiry(30);
         globalConfig.setAdditionalEmails(null);
 
-        ThirdPartyService thirdPartyService = ThirdPartyService.builder()
-                .id(UUID.randomUUID())
-                .responsiblePersonnel(Set.of(employee))
-                .build();
+        when(employeeConfigRepo.findByEmployeeId(employeeUUID)).thenReturn(Optional.of(globalConfig));
+        when(employeeConfigRepo.findEmployeeEmailByEmployeeId(employeeUUID)).thenReturn(Optional.of("worker@imone.lt"));
 
-        when(employeeConfigRepo.findByEmployeeId(employee)).thenReturn(Optional.of(globalConfig));
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, thirdPartyService.getId()))
-                .thenReturn(Optional.empty());
+        EmployeeNotificationResult result = service.getServiceNotificationDetails(employeeUUID, serviceId);
 
-        List<EmployeeNotificationResult> results = service.getServiceNotificationDetails(thirdPartyService);
-
-        assertEquals(1, results.size());
-        assertTrue(results.get(0).getAdditionalEmails().isEmpty());
+        assertNotNull(result);
+        assertTrue(result.getAdditionalEmails().isEmpty());
     }
 }

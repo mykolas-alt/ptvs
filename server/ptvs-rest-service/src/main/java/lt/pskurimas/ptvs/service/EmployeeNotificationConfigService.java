@@ -3,10 +3,8 @@ package lt.pskurimas.ptvs.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.dto.response.EmployeeNotificationResult;
-import lt.pskurimas.ptvs.model.Employee;
 import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
 import lt.pskurimas.ptvs.model.ServiceNotificationConfig;
-import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.EmployeeNotificationConfigRepository;
 import lt.pskurimas.ptvs.repository.ServiceNotificationConfigRepository;
 import org.springframework.stereotype.Service;
@@ -21,8 +19,8 @@ public class EmployeeNotificationConfigService {
     private final ServiceNotificationConfigRepository serviceConfigRepo;
 
     /** Checks if the employee should be notified about the given service. */
-    public boolean shouldNotify(Employee employee, UUID serviceId) {
-        EmployeeNotificationConfig global = employeeConfigRepo.findByEmployeeId(employee).orElse(null);
+    public boolean shouldNotify(UUID employeeId, UUID serviceId) {
+        EmployeeNotificationConfig global = employeeConfigRepo.findByEmployeeId(employeeId).orElse(null);
 
         // If there are no global configurations, OR notifications are off
         if (global == null || !global.isNotificationsEnabled()) {
@@ -36,13 +34,13 @@ public class EmployeeNotificationConfigService {
 
         // Send it only when the service is included AND enabled
         ServiceNotificationConfig serviceConfig = serviceConfigRepo
-                .findByEmployeeIdAndServiceId(employee, serviceId)
+                .findByEmployeeIdAndServiceId(employeeId, serviceId)
                 .orElse(null);
 
         return serviceConfig != null && serviceConfig.isServiceEnabled();
     }
 
-    public Integer resolveDaysBeforeExpiry(Employee employee, UUID serviceId) {
+    public Integer resolveDaysBeforeExpiry(UUID employee, UUID serviceId) {
         // If there is no value in vendorConfig then return the global value
         EmployeeNotificationConfig employeeConfig = employeeConfigRepo
                 .findByEmployeeId(employee)
@@ -68,7 +66,7 @@ public class EmployeeNotificationConfigService {
         return employeeConfig.getDaysBeforeExpiry();
     }
 
-    public String resolveAdditionalEmails(Employee employee, UUID serviceId) {
+    public String resolveAdditionalEmails(UUID employee, UUID serviceId) {
         // Check if there is a service-specific configuration
         ServiceNotificationConfig serviceConfig = serviceConfigRepo
                 .findByEmployeeIdAndServiceId(employee, serviceId)
@@ -89,35 +87,33 @@ public class EmployeeNotificationConfigService {
         return null;
     }
 
-    public List<EmployeeNotificationResult> getServiceNotificationDetails(ThirdPartyService thirdPartyService) {
-        List<EmployeeNotificationResult> results = new ArrayList<>();
+    public EmployeeNotificationResult getServiceNotificationDetails(UUID employeeId, UUID serviceId) {
 
-        for (Employee employee : thirdPartyService.getResponsiblePersonnel()) {
-            if (!shouldNotify(employee, thirdPartyService.getId())) {
-                continue;
-            }
-
-            String additionalEmailsRaw = resolveAdditionalEmails(employee, thirdPartyService.getId());
-            List<String> additionalEmails = additionalEmailsRaw != null && !additionalEmailsRaw.isBlank()
-                    ? Arrays.stream(additionalEmailsRaw.split(","))
-                    .map(String::trim)
-                    .toList()
-                    : List.of();
-
-            results.add(EmployeeNotificationResult.builder()
-                    .employeeId(employee.getId())
-                    .employeeEmail(employee.getEmail())
-                    .additionalEmails(additionalEmails)
-                    .daysBeforeExpiry(resolveDaysBeforeExpiry(employee, thirdPartyService.getId()))
-                    .build());
+        if (!shouldNotify(employeeId, serviceId)) {
+            return null;
         }
 
-        return results;
+        String employeeEmail = employeeConfigRepo.findEmployeeEmailByEmployeeId(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+
+        String additionalEmailsRaw = resolveAdditionalEmails(employeeId, serviceId);
+        List<String> additionalEmails = additionalEmailsRaw != null && !additionalEmailsRaw.isBlank()
+                ? Arrays.stream(additionalEmailsRaw.split(","))
+                .map(String::trim)
+                .toList()
+                : List.of();
+
+        return EmployeeNotificationResult.builder()
+                .employeeId(employeeId)
+                .employeeEmail(employeeEmail)
+                .additionalEmails(additionalEmails)
+                .daysBeforeExpiry(resolveDaysBeforeExpiry(employeeId, serviceId))
+                .build();
     }
 
 
 
-    public Optional<EmployeeNotificationConfig> getEmployeeConfig(Employee employeeId) {
+    public Optional<EmployeeNotificationConfig> getEmployeeConfig(UUID employeeId) {
         return employeeConfigRepo.findByEmployeeId(employeeId);
     }
 
@@ -128,7 +124,7 @@ public class EmployeeNotificationConfigService {
     }
 
     @Transactional
-    public EmployeeNotificationConfig updateEmployeeConfig(Employee employeeId, EmployeeNotificationConfig updated) {
+    public EmployeeNotificationConfig updateEmployeeConfig(UUID employeeId, EmployeeNotificationConfig updated) {
         EmployeeNotificationConfig existing = findEmployeeConfigOrThrow(employeeId);
         validateDaysBeforeExpiry(updated.getDaysBeforeExpiry());
 
@@ -142,7 +138,7 @@ public class EmployeeNotificationConfigService {
 
     // --- Helper metodai ---
 
-    private EmployeeNotificationConfig findEmployeeConfigOrThrow(Employee employeeId) {
+    private EmployeeNotificationConfig findEmployeeConfigOrThrow(UUID employeeId) {
         return employeeConfigRepo.findByEmployeeId(employeeId)
                 .orElseThrow(() -> new IllegalArgumentException("Global config not found for user: " + employeeId));
     }

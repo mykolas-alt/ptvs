@@ -26,15 +26,17 @@ class ServiceNotificationConfigServiceTest {
     private ServiceNotificationConfigService service;
 
     private Employee employee;
+    private final UUID employeeId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"); // 👈 pridėtas
     private final UUID serviceId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     @BeforeEach
     void setUp() {
         employee = new Employee();
+        employee.setId(employeeId);
         employee.setDepartment("IT");
     }
 
-    // --- saveVendorConfig ---
+    // --- saveServiceConfig ---
 
     @Test
     void saveServiceConfig_WhenDaysIsZero_ThrowsException() {
@@ -60,11 +62,11 @@ class ServiceNotificationConfigServiceTest {
         assertDoesNotThrow(() -> service.saveServiceConfig(config));
     }
 
-    // --- updateVendorConfig ---
+    // --- updateServiceConfig ---
 
     @Test
     void updateServiceConfig_WhenNotFound_ThrowsException() {
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeId, serviceId))
                 .thenReturn(Optional.empty());
 
         ServiceNotificationConfig updated = ServiceNotificationConfig.builder()
@@ -72,7 +74,7 @@ class ServiceNotificationConfigServiceTest {
                 .build();
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.updateServiceConfig(employee, serviceId, updated));
+                () -> service.updateServiceConfig(employeeId, serviceId, updated));
     }
 
     @Test
@@ -91,22 +93,22 @@ class ServiceNotificationConfigServiceTest {
                 .additionalEmails("new@imone.lt")
                 .build();
 
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employee, serviceId))
+        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeId, serviceId))
                 .thenReturn(Optional.of(existing));
         when(serviceConfigRepo.save(existing)).thenReturn(existing);
 
-        ServiceNotificationConfig result = service.updateServiceConfig(employee, serviceId, updated);
+        ServiceNotificationConfig result = service.updateServiceConfig(employeeId, serviceId, updated);
 
         assertEquals(14, result.getDaysBeforeExpiry());
         assertEquals("new@imone.lt", result.getAdditionalEmails());
         assertFalse(result.isServiceEnabled());
     }
 
-    // --- deleteVendorConfig ---
+    // --- deleteServiceConfig ---
 
     @Test
     void deleteServiceConfig_CallsRepository() {
-        service.deleteServiceConfig(employee, serviceId);
-        verify(serviceConfigRepo, times(1)).deleteByEmployeeIdAndServiceId(employee, serviceId);
+        service.deleteServiceConfig(employeeId, serviceId);
+        verify(serviceConfigRepo, times(1)).deleteByEmployeeIdAndServiceId(employeeId, serviceId);
     }
 }

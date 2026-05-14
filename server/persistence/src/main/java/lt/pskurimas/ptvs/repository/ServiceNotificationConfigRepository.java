@@ -13,10 +13,10 @@ import java.util.UUID;
 public interface ServiceNotificationConfigRepository
         extends JpaRepository<ServiceNotificationConfig, UUID> {
 
-    List<ServiceNotificationConfig> findByEmployeeId(Employee employeeId);
+    List<ServiceNotificationConfig> findByEmployeeId(UUID employeeId);
 
-    Optional<ServiceNotificationConfig> findByEmployeeIdAndServiceId(Employee employeeId, UUID serviceId);
+    Optional<ServiceNotificationConfig> findByEmployeeIdAndServiceId(UUID employeeId, UUID serviceId);
 
     @Transactional
-    void deleteByEmployeeIdAndServiceId(Employee employeeId, UUID serviceId);
+    void deleteByEmployeeIdAndServiceId(UUID employeeId, UUID serviceId);
 }
