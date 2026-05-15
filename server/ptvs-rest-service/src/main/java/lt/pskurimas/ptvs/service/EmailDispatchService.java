@@ -34,7 +34,7 @@ public class EmailDispatchService {
             // Main recipient
             helper.setTo(employeeEmail);
 
-            if (!additionalEmails.isEmpty()) {
+            if (additionalEmails != null && !additionalEmails.isEmpty()) {
                 helper.setCc(additionalEmails.toArray(new String[0]));
             }
 
