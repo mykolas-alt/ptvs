@@ -10,6 +10,8 @@ import lt.pskurimas.ptvs.model.CostReportDetailEntity;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.CostReportRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -100,8 +102,8 @@ public class ReportService {
         }
 
         @Transactional(readOnly = true)
-        public List<CostReportSummary> getAllSavedReports() {
-                return costReportRepository.findBy(CostReportSummary.class);
+        public Page<CostReportSummary> getAllSavedReports(Pageable pageable) {
+                return costReportRepository.findBy(CostReportSummary.class, pageable);
         }
 
         @Transactional(readOnly = true)
