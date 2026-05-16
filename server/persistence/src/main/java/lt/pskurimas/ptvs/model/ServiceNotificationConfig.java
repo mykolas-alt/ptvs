@@ -3,6 +3,7 @@ package lt.pskurimas.ptvs.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -18,19 +19,11 @@ public class ServiceNotificationConfig {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false)
-    private Employee employee;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_id", nullable = false, unique = true)
+    private ThirdPartyService service;
 
-    @Column(name = "service_id", nullable = false)
-    private UUID serviceId;
-
-    @Column(name = "service_enabled", nullable = false)
-    private boolean serviceEnabled = true;
-
-    @Column(name = "days_before_expiry")
-    private Integer daysBeforeExpiry;
-
-    @Column(name = "additional_emails", columnDefinition = "TEXT")
-    private String additionalEmails;
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_notification_config_id")
+    private List<EmployeeNotificationConfig> employeeConfigs;
 }
