@@ -22,7 +22,6 @@ public class ServiceNotificationConfig {
     @JoinColumn(name = "service_id", nullable = false, unique = true)
     private ThirdPartyService service;
 
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_notification_config_id")
+    @OneToMany(mappedBy = "serviceNotificationConfig", fetch = FetchType.LAZY)
     private List<EmployeeNotificationConfig> employeeConfigs;
 }

@@ -61,33 +61,6 @@ class ServiceNotificationConfigServiceTest {
         assertDoesNotThrow(() -> service.saveServiceConfig(config));
     }
 
-
-    @Test
-    void updateServiceConfig_WhenNotFound_ThrowsException() {
-        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.empty());
-
-        assertThrows(IllegalArgumentException.class,
-                () -> service.updateServiceConfig(serviceId, config));
-    }
-
-    @Test
-    void updateServiceConfig_WhenFound_UpdatesFields() {
-        List<EmployeeNotificationConfig> newEmployeeConfigs = List.of(
-                EmployeeNotificationConfig.builder().daysBeforeExpiry(14).build()
-        );
-
-        ServiceNotificationConfig updated = ServiceNotificationConfig.builder()
-                .employeeConfigs(newEmployeeConfigs)
-                .build();
-
-        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.of(config));
-        when(serviceConfigRepo.save(config)).thenReturn(config);
-
-        ServiceNotificationConfig result = service.updateServiceConfig(serviceId, updated);
-
-        assertEquals(newEmployeeConfigs, result.getEmployeeConfigs());
-    }
-
     @Test
     void deleteServiceConfig_CallsRepository() {
         service.deleteServiceConfig(serviceId);

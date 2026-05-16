@@ -21,5 +21,7 @@
     <include file="changesets/015-app-user-audit.xml" relativeToChangelogFile="true"/>
     <include file="changesets/008-update-employee-notification-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/009-update-service-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/009-update-employee-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/008-update-service-notification-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/010-update-seed-notification-config.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

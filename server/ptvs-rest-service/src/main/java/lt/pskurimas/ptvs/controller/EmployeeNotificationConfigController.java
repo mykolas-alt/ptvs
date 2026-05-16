@@ -31,9 +31,8 @@ public class EmployeeNotificationConfigController {
             @PathVariable UUID serviceId,
             @RequestBody EmployeeNotificationConfig config,
             @CurrentUser AppUser user) {
-        config.setServiceId(serviceId);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(employeeNotificationConfigService.saveEmployeeConfig(config));
+                .body(employeeNotificationConfigService.saveEmployeeConfig(config, serviceId));
     }
 
     @PutMapping("/{serviceId}/employees/{employeeId}")

@@ -24,15 +24,6 @@ public class ServiceNotificationConfigService {
     }
 
     @Transactional
-    public ServiceNotificationConfig updateServiceConfig(UUID serviceId, ServiceNotificationConfig updated) {
-        ServiceNotificationConfig existing = findServiceConfigOrThrow(serviceId);
-
-        existing.setEmployeeConfigs(updated.getEmployeeConfigs());
-
-        return serviceConfigRepo.save(existing);
-    }
-
-    @Transactional
     public void deleteServiceConfig(UUID serviceId) {
         serviceConfigRepo.deleteByServiceId(serviceId);
     }

@@ -2,7 +2,9 @@ package lt.pskurimas.ptvs.service;
 
 import lt.pskurimas.ptvs.model.Employee;
 import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
+import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.EmployeeNotificationConfigRepository;
+import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,9 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+
+import java.util.*;
 
 @ExtendWith(MockitoExtension.class)
 class EmployeeNotificationConfigServiceTest {
@@ -21,10 +22,14 @@ class EmployeeNotificationConfigServiceTest {
     @Mock
     private EmployeeNotificationConfigRepository employeeConfigRepo;
 
+    @Mock
+    private ThirdPartyServiceRepository thirdPartyServiceRepo;
+
     @InjectMocks
     private EmployeeNotificationConfigService service;
 
     private Employee employee;
+    private ThirdPartyService thirdPartyService;
     private final UUID employeeId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private final UUID serviceId  = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
@@ -35,10 +40,13 @@ class EmployeeNotificationConfigServiceTest {
         employee = new Employee();
         employee.setId(employeeId);
 
+        thirdPartyService = new ThirdPartyService();
+        thirdPartyService.setId(serviceId);
+
         config = EmployeeNotificationConfig.builder()
                 .id(UUID.randomUUID())
                 .employee(employee)
-                .serviceId(serviceId)
+                .service(thirdPartyService)
                 .daysBeforeExpiry(30)
                 .additionalEmails("boss@imone.lt")
                 .build();
@@ -75,21 +83,34 @@ class EmployeeNotificationConfigServiceTest {
     }
 
     @Test
+    void saveEmployeeConfig_WhenValid_SavesSuccessfully() {
+        thirdPartyService.setResponsiblePersonnel(new HashSet<>(Set.of(employee))); // employee yra responsible
+        when(thirdPartyServiceRepo.findById(serviceId)).thenReturn(Optional.of(thirdPartyService));
+        when(employeeConfigRepo.save(config)).thenReturn(config);
+        assertDoesNotThrow(() -> service.saveEmployeeConfig(config, serviceId));
+    }
+
+    @Test
+    void saveEmployeeConfig_WhenEmployeeNotResponsible_ThrowsException() {
+        thirdPartyService.setResponsiblePersonnel(new HashSet<>()); // tuščias sąrašas
+        when(thirdPartyServiceRepo.findById(serviceId)).thenReturn(Optional.of(thirdPartyService));
+        assertThrows(IllegalArgumentException.class, () -> service.saveEmployeeConfig(config, serviceId));
+    }
+
+    @Test
     void saveEmployeeConfig_WhenDaysIsZero_ThrowsException() {
+        thirdPartyService.setResponsiblePersonnel(new HashSet<>(Set.of(employee)));
+        when(thirdPartyServiceRepo.findById(serviceId)).thenReturn(Optional.of(thirdPartyService));
         config.setDaysBeforeExpiry(0);
-        assertThrows(IllegalArgumentException.class, () -> service.saveEmployeeConfig(config));
+        assertThrows(IllegalArgumentException.class, () -> service.saveEmployeeConfig(config, serviceId));
     }
 
     @Test
     void saveEmployeeConfig_WhenDaysIsNull_ThrowsException() {
+        thirdPartyService.setResponsiblePersonnel(new HashSet<>(Set.of(employee)));
+        when(thirdPartyServiceRepo.findById(serviceId)).thenReturn(Optional.of(thirdPartyService));
         config.setDaysBeforeExpiry(null);
-        assertThrows(IllegalArgumentException.class, () -> service.saveEmployeeConfig(config));
-    }
-
-    @Test
-    void saveEmployeeConfig_WhenValid_SavesSuccessfully() {
-        when(employeeConfigRepo.save(config)).thenReturn(config);
-        assertDoesNotThrow(() -> service.saveEmployeeConfig(config));
+        assertThrows(IllegalArgumentException.class, () -> service.saveEmployeeConfig(config, serviceId));
     }
 
     @Test

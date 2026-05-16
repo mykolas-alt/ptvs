@@ -21,9 +21,14 @@ public class EmployeeNotificationConfig {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    @Column(name = "service_id", nullable = false)
-    private UUID serviceId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_id", nullable = false)
+    private ThirdPartyService service;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_notification_config_id")
+    private ServiceNotificationConfig serviceNotificationConfig;
+    
     @Column(name = "days_before_expiry")
     private Integer daysBeforeExpiry;
 
