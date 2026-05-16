@@ -14,6 +14,7 @@ POSTGRES_IMAGE="postgres:16.4"
 DB_NAME="ptvs"
 DB_USER="ptvs"
 DB_PASSWORD="ptvs"
+WITH_BUILD=true
 
 mkdir -p "$PID_DIR" "$LOG_DIR"
 
@@ -29,7 +30,7 @@ fi
 usage() {
   cat <<'EOF'
 Usage:
-  ./ptvs.sh --start [--components client,server]
+  ./ptvs.sh --start [--nobuild] [--components client,server]
   ./ptvs.sh --stop [--components client,server]
   ./ptvs.sh --startdb [--volume <volume-name>]
   ./ptvs.sh --stopdb
@@ -39,6 +40,7 @@ Usage:
 
 Options:
   --start               Start server and client in the background.
+  --nobuild             Skip building the server before starting (only works with --start).
   --stop                Stop server and client started by this script.
   --components LIST     Comma-separated component list (client,server). Default: both.
   --startdb             Start PostgreSQL container.
@@ -280,7 +282,10 @@ start_apps() {
     local jar_file="$PROJECT_ROOT/server/ptvs-rest-service/target/ptvs-rest-service-0.0.1-SNAPSHOT.jar"
     
     # Build if JAR doesn't exist
-    if [[ ! -f "$jar_file" ]]; then
+    if $WITH_BUILD; then
+      echo "Building server (--nobuild not specified)..."
+      (cd "$PROJECT_ROOT" && ./mvnw clean install -q)
+    elif [[ ! -f "$jar_file" ]]; then
       echo "Building server..."
       (cd "$PROJECT_ROOT" && ./mvnw clean install -q)
     fi
@@ -322,6 +327,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --start)
       ACTION_START=true
+      shift
+      ;;
+    --nobuild)
+      WITH_BUILD=false
       shift
       ;;
     --stop)
