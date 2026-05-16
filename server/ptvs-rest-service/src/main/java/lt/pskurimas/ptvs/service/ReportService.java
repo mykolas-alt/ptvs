@@ -1,18 +1,6 @@
 package lt.pskurimas.ptvs.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.dto.request.ServiceReportRequest;
 import lt.pskurimas.ptvs.dto.response.CostReportSummary;
 import lt.pskurimas.ptvs.dto.response.ServiceReportDetail;
@@ -22,7 +10,18 @@ import lt.pskurimas.ptvs.model.CostReportDetailEntity;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.CostReportRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -102,7 +101,7 @@ public class ReportService {
 
         @Transactional(readOnly = true)
         public List<CostReportSummary> getAllSavedReports() {
-                return costReportRepository.findBy(CostReportSummary.class);
+                return costReportRepository.findAllAndMapToProjection();
         }
 
         @Transactional(readOnly = true)
