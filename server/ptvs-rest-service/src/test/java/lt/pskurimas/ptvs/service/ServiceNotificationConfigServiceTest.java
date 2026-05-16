@@ -1,6 +1,6 @@
 package lt.pskurimas.ptvs.service;
 
-import lt.pskurimas.ptvs.model.Employee;
+import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
 import lt.pskurimas.ptvs.model.ServiceNotificationConfig;
 import lt.pskurimas.ptvs.repository.ServiceNotificationConfigRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,90 +26,71 @@ class ServiceNotificationConfigServiceTest {
     @InjectMocks
     private ServiceNotificationConfigService service;
 
-    private Employee employee;
-    private final UUID employeeId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"); // 👈 pridėtas
     private final UUID serviceId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+
+    private ServiceNotificationConfig config;
 
     @BeforeEach
     void setUp() {
-        employee = new Employee();
-        employee.setId(employeeId);
-        employee.setDepartment("IT");
-    }
-
-    // --- saveServiceConfig ---
-
-    @Test
-    void saveServiceConfig_WhenDaysIsZero_ThrowsException() {
-        ServiceNotificationConfig config = ServiceNotificationConfig.builder()
-                .employee(employee)
-                .serviceId(serviceId)
-                .daysBeforeExpiry(0)
+        config = ServiceNotificationConfig.builder()
+                .id(UUID.randomUUID())
                 .build();
-
-        assertThrows(IllegalArgumentException.class, () -> service.saveServiceConfig(config));
     }
 
     @Test
-    void saveServiceConfig_WhenDaysIsNull_SavesSuccessfully() {
-        ServiceNotificationConfig config = ServiceNotificationConfig.builder()
-                .employee(employee)
-                .serviceId(serviceId)
-                .daysBeforeExpiry(null)
-                .build();
+    void getServiceConfig_WhenExists_ReturnsConfig() {
+        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.of(config));
 
+        Optional<ServiceNotificationConfig> result = service.getServiceConfig(serviceId);
+
+        assertTrue(result.isPresent());
+    }
+
+    @Test
+    void getServiceConfig_WhenNotExists_ReturnsEmpty() {
+        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.empty());
+
+        Optional<ServiceNotificationConfig> result = service.getServiceConfig(serviceId);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void saveServiceConfig_WhenValid_SavesSuccessfully() {
         when(serviceConfigRepo.save(config)).thenReturn(config);
-
         assertDoesNotThrow(() -> service.saveServiceConfig(config));
     }
 
-    // --- updateServiceConfig ---
 
     @Test
     void updateServiceConfig_WhenNotFound_ThrowsException() {
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeId, serviceId))
-                .thenReturn(Optional.empty());
-
-        ServiceNotificationConfig updated = ServiceNotificationConfig.builder()
-                .daysBeforeExpiry(14)
-                .build();
+        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.updateServiceConfig(employeeId, serviceId, updated));
+                () -> service.updateServiceConfig(serviceId, config));
     }
 
     @Test
     void updateServiceConfig_WhenFound_UpdatesFields() {
-        ServiceNotificationConfig existing = ServiceNotificationConfig.builder()
-                .employee(employee)
-                .serviceId(serviceId)
-                .serviceEnabled(true)
-                .daysBeforeExpiry(30)
-                .additionalEmails("old@imone.lt")
-                .build();
+        List<EmployeeNotificationConfig> newEmployeeConfigs = List.of(
+                EmployeeNotificationConfig.builder().daysBeforeExpiry(14).build()
+        );
 
         ServiceNotificationConfig updated = ServiceNotificationConfig.builder()
-                .serviceEnabled(false)
-                .daysBeforeExpiry(14)
-                .additionalEmails("new@imone.lt")
+                .employeeConfigs(newEmployeeConfigs)
                 .build();
 
-        when(serviceConfigRepo.findByEmployeeIdAndServiceId(employeeId, serviceId))
-                .thenReturn(Optional.of(existing));
-        when(serviceConfigRepo.save(existing)).thenReturn(existing);
+        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.of(config));
+        when(serviceConfigRepo.save(config)).thenReturn(config);
 
-        ServiceNotificationConfig result = service.updateServiceConfig(employeeId, serviceId, updated);
+        ServiceNotificationConfig result = service.updateServiceConfig(serviceId, updated);
 
-        assertEquals(14, result.getDaysBeforeExpiry());
-        assertEquals("new@imone.lt", result.getAdditionalEmails());
-        assertFalse(result.isServiceEnabled());
+        assertEquals(newEmployeeConfigs, result.getEmployeeConfigs());
     }
-
-    // --- deleteServiceConfig ---
 
     @Test
     void deleteServiceConfig_CallsRepository() {
-        service.deleteServiceConfig(employeeId, serviceId);
-        verify(serviceConfigRepo, times(1)).deleteByEmployeeIdAndServiceId(employeeId, serviceId);
+        service.deleteServiceConfig(serviceId);
+        verify(serviceConfigRepo, times(1)).deleteByServiceId(serviceId);
     }
 }

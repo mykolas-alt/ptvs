@@ -1,10 +1,8 @@
 package lt.pskurimas.ptvs.repository;
 
-import lt.pskurimas.ptvs.model.Employee;
+import jakarta.transaction.Transactional;
 import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,5 +13,10 @@ import java.util.UUID;
 public interface EmployeeNotificationConfigRepository
         extends JpaRepository<EmployeeNotificationConfig, UUID> {
 
-    List<EmployeeNotificationConfig> findByEmployeeId(UUID employeeId);
+    Optional<EmployeeNotificationConfig> findByEmployeeIdAndServiceId(UUID employeeId, UUID serviceId);
+
+    List<EmployeeNotificationConfig> findByServiceId(UUID serviceId);
+
+    @Transactional
+    void deleteByEmployeeIdAndServiceId(UUID employeeId, UUID serviceId);
 }

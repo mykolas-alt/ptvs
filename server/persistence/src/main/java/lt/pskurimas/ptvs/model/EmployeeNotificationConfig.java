@@ -2,7 +2,6 @@ package lt.pskurimas.ptvs.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.util.UUID;
 
 @Entity
@@ -21,6 +20,9 @@ public class EmployeeNotificationConfig {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
+
+    @Column(name = "service_id", nullable = false)
+    private UUID serviceId;
 
     @Column(name = "days_before_expiry")
     private Integer daysBeforeExpiry;
