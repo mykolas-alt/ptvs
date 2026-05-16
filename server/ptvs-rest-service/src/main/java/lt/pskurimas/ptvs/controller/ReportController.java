@@ -1,6 +1,11 @@
 package lt.pskurimas.ptvs.controller;
 
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lt.pskurimas.ptvs.annotation.CurrentUser;
 import lt.pskurimas.ptvs.annotation.RequireRole;
 import lt.pskurimas.ptvs.dto.request.ServiceReportRequest;
+import lt.pskurimas.ptvs.dto.response.CostReportSummary;
 import lt.pskurimas.ptvs.dto.response.ServiceReportResponse;
 import lt.pskurimas.ptvs.model.AppUser;
 import lt.pskurimas.ptvs.model.UserRole;
@@ -29,5 +35,19 @@ public class ReportController {
             @CurrentUser AppUser user) {
 
         return ResponseEntity.ok(reportService.generateCostReport(request));
+    }
+
+    @GetMapping("cost-report")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<List<CostReportSummary>> getAllReports(@CurrentUser AppUser user) {
+        return ResponseEntity.ok(reportService.getAllSavedReports());
+    }
+
+    @GetMapping("cost-report/{id}")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<ServiceReportResponse> getReportById(
+            @PathVariable UUID id,
+            @CurrentUser AppUser user) {
+        return ResponseEntity.ok(reportService.getSavedReportById(id));
     }
 }
