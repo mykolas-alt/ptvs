@@ -101,7 +101,7 @@ public class ReportService {
 
         @Transactional(readOnly = true)
         public List<CostReportSummary> getAllSavedReports() {
-                return costReportRepository.findAllAndMapToProjection();
+                return costReportRepository.findAllProjectedBy();
         }
 
         @Transactional(readOnly = true)
