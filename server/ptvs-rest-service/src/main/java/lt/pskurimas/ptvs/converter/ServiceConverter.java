@@ -1,5 +1,6 @@
 package lt.pskurimas.ptvs.converter;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -19,10 +20,9 @@ public class ServiceConverter {
     private final EmployeeConverter employeeConverter;
 
     public ServiceResponse toResponse(ThirdPartyService service) {
-        VendorContactResponse vendorContactResponse = null;
-        if (service.getVendorContact() != null) {
-            vendorContactResponse = vendorContactConverter.toResponse(service.getVendorContact());
-        }
+        VendorContactResponse vendorContactResponse = Optional.ofNullable(service.getVendorContact())
+                .map(vendorContactConverter::toResponse)
+                .orElse(null);
 
         Set<EmployeeResponse> employeeResponses = service.getResponsiblePersonnel().stream()
                 .map(employeeConverter::toResponse)

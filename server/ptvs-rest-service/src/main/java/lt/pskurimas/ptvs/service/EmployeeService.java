@@ -1,15 +1,17 @@
 package lt.pskurimas.ptvs.service;
 
-import java.util.List;
-import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
+import lt.pskurimas.ptvs.converter.EmployeeConverter;
+import lt.pskurimas.ptvs.dto.request.CreateEmployeeRequest;
+import lt.pskurimas.ptvs.dto.response.EmployeeResponse;
+import lt.pskurimas.ptvs.model.Employee;
+import lt.pskurimas.ptvs.repository.EmployeeRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lt.pskurimas.ptvs.dto.request.CreateEmployeeRequest;
-import lt.pskurimas.ptvs.model.Employee;
-import lt.pskurimas.ptvs.repository.EmployeeRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -17,8 +19,9 @@ import lombok.RequiredArgsConstructor;
 public class EmployeeService {
 
     private final EmployeeRepository repository;
+    private final EmployeeConverter employeeConverter;
 
-    public Employee createEmployee(CreateEmployeeRequest request) {
+    public EmployeeResponse createEmployee(CreateEmployeeRequest request) {
         Employee employee = new Employee();
         employee.setName(request.getName());
         employee.setEmail(request.getEmail());
@@ -27,17 +30,21 @@ public class EmployeeService {
         employee.setDepartment(request.getDepartment());
         employee.setJobTitle(request.getJobTitle());
 
-        return repository.save(employee);
+        Employee persistedEmployee = repository.save(employee);
+
+        return employeeConverter.toResponse(persistedEmployee);
     }
 
     @Transactional(readOnly = true)
-    public Employee getEmployeeById(UUID id) {
+    public EmployeeResponse getEmployeeById(UUID id) {
         return repository.findById(id)
+                .map(employeeConverter::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + id));
     }
 
     @Transactional(readOnly = true)
-    public List<Employee> getAllEmployees() {
-        return repository.findAll();
+    public Page<EmployeeResponse> getAllEmployees(Pageable pageable) {
+        return repository.findAll(pageable)
+                .map(employeeConverter::toResponse);
     }
 }

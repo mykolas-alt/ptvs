@@ -1,9 +1,18 @@
 package lt.pskurimas.ptvs.controller;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
+import lombok.RequiredArgsConstructor;
+import lt.pskurimas.ptvs.annotation.CurrentUser;
+import lt.pskurimas.ptvs.annotation.RequireRole;
+import lt.pskurimas.ptvs.dto.request.CreateServiceRequest;
+import lt.pskurimas.ptvs.dto.request.UpdateServiceRequest;
+import lt.pskurimas.ptvs.dto.response.PagedResponse;
+import lt.pskurimas.ptvs.dto.response.ServiceResponse;
+import lt.pskurimas.ptvs.model.AppUser;
+import lt.pskurimas.ptvs.model.ServiceStatus;
+import lt.pskurimas.ptvs.model.UserRole;
+import lt.pskurimas.ptvs.service.ThirdPartyServiceService;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,17 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import lt.pskurimas.ptvs.annotation.CurrentUser;
-import lt.pskurimas.ptvs.annotation.RequireRole;
-import lt.pskurimas.ptvs.converter.ServiceConverter;
-import lt.pskurimas.ptvs.model.AppUser;
-import lt.pskurimas.ptvs.model.UserRole;
-import lt.pskurimas.ptvs.model.ServiceStatus;
-import lt.pskurimas.ptvs.dto.request.CreateServiceRequest;
-import lt.pskurimas.ptvs.dto.request.UpdateServiceRequest;
-import lt.pskurimas.ptvs.dto.response.ServiceResponse;
-import lt.pskurimas.ptvs.service.ThirdPartyServiceService;
-import lombok.RequiredArgsConstructor;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/services")
@@ -33,35 +32,27 @@ import lombok.RequiredArgsConstructor;
 public class ThirdPartyServiceController {
 
     private final ThirdPartyServiceService serviceService;
-    private final ServiceConverter serviceConverter;
 
     @GetMapping
-    @RequireRole(UserRole.ADMIN)
-    public ResponseEntity<List<ServiceResponse>> getAllServices(@CurrentUser AppUser user) {
-        return ResponseEntity.ok(
-                serviceService.getAllServices().stream()
-                        .map(serviceConverter::toResponse)
-                        .collect(Collectors.toList())
-        );
+    public PagedResponse<ServiceResponse> getAllServices(@CurrentUser AppUser user,
+                                                         @PageableDefault Pageable pageable) {
+        return PagedResponse.of(serviceService.getAllServices(pageable));
     }
 
     @GetMapping("/{id}")
     @RequireRole(UserRole.ADMIN)
     public ResponseEntity<ServiceResponse> getServiceById(@PathVariable UUID id,
                                                           @CurrentUser AppUser user) {
-        return ResponseEntity.ok(serviceConverter.toResponse(serviceService.getServiceById(id)));
+        return ResponseEntity.ok(serviceService.getServiceById(id));
     }
 
     @GetMapping("/status/{status}")
     @RequireRole(UserRole.ADMIN)
-    public ResponseEntity<List<ServiceResponse>> getServicesByStatus(
+    public PagedResponse<ServiceResponse> getServicesByStatus(
             @PathVariable ServiceStatus status,
+            @PageableDefault Pageable pageable,
             @CurrentUser AppUser user) {
-        return ResponseEntity.ok(
-                serviceService.getServicesByStatus(status).stream()
-                        .map(serviceConverter::toResponse)
-                        .collect(Collectors.toList())
-        );
+        return PagedResponse.of(serviceService.getServicesByStatus(status, pageable));
     }
 
     @PostMapping
@@ -69,7 +60,7 @@ public class ThirdPartyServiceController {
     public ResponseEntity<ServiceResponse> createService(@RequestBody CreateServiceRequest request,
                                                          @CurrentUser AppUser user) {
         var service = serviceService.createService(request, user.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(serviceConverter.toResponse(service));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service);
     }
 
     @PutMapping("/{id}")
@@ -78,7 +69,7 @@ public class ThirdPartyServiceController {
                                                          @RequestBody UpdateServiceRequest request,
                                                          @CurrentUser AppUser user) {
         var service = serviceService.updateService(id, request);
-        return ResponseEntity.ok(serviceConverter.toResponse(service));
+        return ResponseEntity.ok(service);
     }
 
     @DeleteMapping("/{id}")
