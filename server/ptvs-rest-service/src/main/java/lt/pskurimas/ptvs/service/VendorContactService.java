@@ -1,15 +1,17 @@
 package lt.pskurimas.ptvs.service;
 
-import java.util.List;
-import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
+import lt.pskurimas.ptvs.converter.VendorContactConverter;
+import lt.pskurimas.ptvs.dto.request.CreateVendorContactRequest;
+import lt.pskurimas.ptvs.dto.response.VendorContactResponse;
+import lt.pskurimas.ptvs.model.VendorContact;
+import lt.pskurimas.ptvs.repository.VendorContactRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lt.pskurimas.ptvs.dto.request.CreateVendorContactRequest;
-import lt.pskurimas.ptvs.model.VendorContact;
-import lt.pskurimas.ptvs.repository.VendorContactRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -17,8 +19,9 @@ import lombok.RequiredArgsConstructor;
 public class VendorContactService {
 
     private final VendorContactRepository repository;
+    private final VendorContactConverter vendorContactConverter;
 
-    public VendorContact createVendorContact(CreateVendorContactRequest request) {
+    public VendorContactResponse createVendorContact(CreateVendorContactRequest request) {
         VendorContact vendorContact = new VendorContact();
         vendorContact.setName(request.getName());
         vendorContact.setEmail(request.getEmail());
@@ -27,18 +30,22 @@ public class VendorContactService {
         vendorContact.setVendorName(request.getVendorName());
         vendorContact.setDepartment(request.getDepartment());
 
-        return repository.save(vendorContact);
+        VendorContact persistedVendorContact = repository.save(vendorContact);
+
+        return vendorContactConverter.toResponse(persistedVendorContact);
     }
 
     @Transactional(readOnly = true)
-    public VendorContact getVendorContactById(UUID id) {
+    public VendorContactResponse getVendorContactById(UUID id) {
         return repository.findById(id)
+                .map(vendorContactConverter::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("Vendor contact not found: " + id));
     }
 
     @Transactional(readOnly = true)
-    public List<VendorContact> getAllVendorContacts() {
-        return repository.findAll();
+    public Page<VendorContactResponse> getAllVendorContacts(Pageable pageable) {
+        return repository.findAll(pageable)
+                .map(vendorContactConverter::toResponse);
     }
 }
 

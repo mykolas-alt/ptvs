@@ -3,6 +3,9 @@ package lt.pskurimas.ptvs.controller;
 import java.util.List;
 import java.util.UUID;
 
+import lt.pskurimas.ptvs.dto.response.PagedResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,8 +42,9 @@ public class ReportController {
 
     @GetMapping("cost-report")
     @RequireRole(UserRole.ADMIN)
-    public ResponseEntity<List<CostReportSummary>> getAllReports(@CurrentUser AppUser user) {
-        return ResponseEntity.ok(reportService.getAllSavedReports());
+    public PagedResponse<CostReportSummary> getAllReports(@CurrentUser AppUser user,
+                                                          @PageableDefault Pageable pageable) {
+        return PagedResponse.of(reportService.getAllSavedReports(pageable));
     }
 
     @GetMapping("cost-report/{id}")

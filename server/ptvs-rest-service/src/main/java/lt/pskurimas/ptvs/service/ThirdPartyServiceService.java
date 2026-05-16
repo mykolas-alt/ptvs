@@ -1,14 +1,10 @@
 package lt.pskurimas.ptvs.service;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import lombok.RequiredArgsConstructor;
+import lt.pskurimas.ptvs.converter.ServiceConverter;
 import lt.pskurimas.ptvs.dto.request.CreateServiceRequest;
 import lt.pskurimas.ptvs.dto.request.UpdateServiceRequest;
+import lt.pskurimas.ptvs.dto.response.ServiceResponse;
 import lt.pskurimas.ptvs.model.Employee;
 import lt.pskurimas.ptvs.model.ServiceStatus;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
@@ -16,7 +12,13 @@ import lt.pskurimas.ptvs.model.VendorContact;
 import lt.pskurimas.ptvs.repository.EmployeeRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
 import lt.pskurimas.ptvs.repository.VendorContactRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -26,8 +28,9 @@ public class ThirdPartyServiceService {
     private final ThirdPartyServiceRepository repository;
     private final VendorContactRepository vendorContactRepository;
     private final EmployeeRepository employeeRepository;
+    private final ServiceConverter serviceConverter;
 
-    public ThirdPartyService createService(CreateServiceRequest request, UUID createdBy) {
+    public ServiceResponse createService(CreateServiceRequest request, UUID createdBy) {
         VendorContact vendorContact = vendorContactRepository.findById(request.getVendorContactId())
                 .orElseThrow(() -> new IllegalArgumentException("Vendor contact not found"));
 
@@ -44,10 +47,12 @@ public class ThirdPartyServiceService {
                 .createdBy(createdBy)
                 .build();
 
-        return repository.save(service);
+        ThirdPartyService persistedService = repository.save(service);
+
+        return serviceConverter.toResponse(persistedService);
     }
 
-    public ThirdPartyService updateService(UUID id, UpdateServiceRequest request) {
+    public ServiceResponse updateService(UUID id, UpdateServiceRequest request) {
         ThirdPartyService service = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
 
@@ -63,23 +68,27 @@ public class ThirdPartyServiceService {
         service.setVendorContact(vendorContact);
         service.setResponsiblePersonnel(responsiblePersonnel);
 
-        return repository.save(service);
+        ThirdPartyService persistedRepository = repository.save(service);
+        return serviceConverter.toResponse(persistedRepository);
     }
 
     @Transactional(readOnly = true)
-    public ThirdPartyService getServiceById(UUID id) {
+    public ServiceResponse getServiceById(UUID id) {
         return repository.findById(id)
+                .map(serviceConverter::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
     }
 
     @Transactional(readOnly = true)
-    public List<ThirdPartyService> getAllServices() {
-        return repository.findAll();
+    public Page<ServiceResponse> getAllServices(Pageable pageable) {
+        return repository.findAll(pageable)
+                .map(serviceConverter::toResponse);
     }
 
     @Transactional(readOnly = true)
-    public List<ThirdPartyService> getServicesByStatus(ServiceStatus status) {
-        return repository.findByStatus(status);
+    public Page<ServiceResponse> getServicesByStatus(ServiceStatus status, Pageable pageable) {
+        return repository.findByStatus(status, pageable)
+                .map(serviceConverter::toResponse);
     }
 
     public void deleteService(UUID id) {
