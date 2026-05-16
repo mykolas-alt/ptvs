@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="008-update-employee-notification-config" author="Ignas">
+        <dropUniqueConstraint tableName="employee_notification_config"
+                              constraintName="uk_employee_notification_config_employee"/>
+        <dropColumn tableName="employee_notification_config" columnName="notifications_enabled"/>
+        <dropColumn tableName="employee_notification_config" columnName="notify_all"/>
+
+        <delete tableName="employee_notification_config"/>
+
+        <addColumn tableName="employee_notification_config">
+            <column name="service_id" type="UUID"/>
+        </addColumn>
+
+        <addColumn tableName="employee_notification_config">
+            <column name="service_notification_config_id" type="UUID"/>
+        </addColumn>
+
+        <addNotNullConstraint
+                tableName="employee_notification_config"
+                columnName="service_id"
+                columnDataType="UUID"/>
+
+        <addForeignKeyConstraint
+                baseTableName="employee_notification_config"
+                baseColumnNames="service_notification_config_id"
+                referencedTableName="service_notification_config"
+                referencedColumnNames="id"
+                onDelete="CASCADE"
+                constraintName="fk_employee_notification_config_service_config"/>
+
+        <addUniqueConstraint
+                tableName="employee_notification_config"
+                columnNames="employee_id, service_id"
+                constraintName="uk_employee_notification_config_employee_service"/>
+    </changeSet>
+
+</databaseChangeLog>

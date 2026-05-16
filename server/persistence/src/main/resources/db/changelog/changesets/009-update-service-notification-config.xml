@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="009-update-service-notification-config" author="Ignas">
+        <dropForeignKeyConstraint baseTableName="service_notification_config"
+                                  constraintName="fk_service_notification_config_employee"/>
+        <dropUniqueConstraint tableName="service_notification_config"
+                              constraintName="uk_service_notification_config_employee_service"/>
+        <dropColumn tableName="service_notification_config" columnName="employee_id"/>
+        <dropColumn tableName="service_notification_config" columnName="service_enabled"/>
+        <dropColumn tableName="service_notification_config" columnName="days_before_expiry"/>
+        <dropColumn tableName="service_notification_config" columnName="additional_emails"/>
+
+        <addUniqueConstraint
+                tableName="service_notification_config"
+                columnNames="service_id"
+                constraintName="uk_service_notification_config_service"/>
+    </changeSet>
+
+</databaseChangeLog>
