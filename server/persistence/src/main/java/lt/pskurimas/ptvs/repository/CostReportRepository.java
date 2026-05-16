@@ -10,5 +10,5 @@ import java.util.UUID;
 @Repository
 public interface CostReportRepository extends JpaRepository<CostReport, UUID> {
 
-    <T> List<T> findAllProjectedBy();
+    <T> List<T> findBy(Class<T> type);
 }
