@@ -15,6 +15,7 @@ import lt.pskurimas.ptvs.repository.ServiceNotificationConfigRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -65,6 +66,7 @@ public class ServiceNotificationConfigService {
                 ));
 
         validateDaysBeforeExpiry(request.getDaysBeforeExpiry());
+        validateAdditionalEmails(request.getAdditionalEmails());
 
         EmployeeNotificationConfig config = EmployeeNotificationConfig.builder()
                 .employee(employee)
@@ -88,7 +90,13 @@ public class ServiceNotificationConfigService {
         EmployeeNotificationConfig existing = employeeConfigRepo.findById(employeeConfigId)
                 .orElseThrow(() -> new IllegalArgumentException("Employee config not found: " + employeeConfigId));
 
+        UUID configServiceId = existing.getServiceNotificationConfig().getService().getId();
+        if (!configServiceId.equals(serviceId)) {
+            throw new IllegalArgumentException("Employee config does not belong to service: " + serviceId);
+        }
+
         validateDaysBeforeExpiry(request.getDaysBeforeExpiry());
+        validateAdditionalEmails(request.getAdditionalEmails());
 
         existing.setDaysBeforeExpiry(request.getDaysBeforeExpiry());
         existing.setAdditionalEmails(request.getAdditionalEmails());
@@ -129,4 +137,17 @@ public class ServiceNotificationConfigService {
         }
     }
 
+    private void validateAdditionalEmails(String additionalEmails) {
+        if (additionalEmails == null || additionalEmails.isBlank()) return;
+
+        String emailRegex = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
+        List<String> invalid = Arrays.stream(additionalEmails.split(","))
+                .map(String::trim)
+                .filter(email -> !email.matches(emailRegex))
+                .toList();
+
+        if (!invalid.isEmpty()) {
+            throw new IllegalArgumentException("Invalid email(s): " + invalid);
+        }
+    }
 }
