@@ -18,10 +18,10 @@ public class ServiceNotificationConfig {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "service_id", nullable = false, unique = true)
     private ThirdPartyService service;
 
-    @OneToMany(mappedBy = "serviceNotificationConfig", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "serviceNotificationConfig", fetch = FetchType.EAGER)
     private List<EmployeeNotificationConfig> employeeConfigs;
 }
