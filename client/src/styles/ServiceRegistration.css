@@ -1,0 +1,156 @@
+.form-main {
+  padding: 16px;
+  flex: 1;
+  max-width: 680px;
+}
+
+.form-main h1 {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1c1c;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.service-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+fieldset {
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  padding: 14px 16px 16px;
+  margin: 0;
+  background: #fff;
+}
+
+legend {
+  color: #f57c00;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 0 6px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.form-field:first-of-type {
+  margin-top: 0;
+}
+
+.form-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a5a5a;
+}
+
+.form-field input,
+.form-field select {
+  background: #fff;
+  color: #1c1c1c;
+  border: 1px solid #c8c8c8;
+  border-radius: 3px;
+  padding: 6px 10px;
+  font-size: 13px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-field input::placeholder {
+  color: #c0c0c0;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: #f57c00;
+  box-shadow: 0 0 0 2px rgba(245, 124, 0, 0.15);
+}
+
+.has-error input,
+.has-error select {
+  border-color: #e57373;
+  background: #fffafa;
+}
+
+.has-error input:focus,
+.has-error select:focus {
+  box-shadow: 0 0 0 2px rgba(198, 40, 40, 0.12);
+}
+
+.field-error {
+  font-size: 11px;
+  color: #c62828;
+}
+
+.select-placeholder {
+  color: #c0c0c0;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.field-row .form-field {
+  margin-top: 0;
+}
+
+.btn-primary {
+  background: #f57c00;
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: #e65100;
+}
+
+.btn-submit {
+  align-self: flex-start;
+  padding: 8px 24px;
+}
+
+.success-card {
+  background: #f1f8e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 4px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 460px;
+}
+
+.success-card h2 {
+  margin: 0;
+  color: #2e7d32;
+  font-size: 15px;
+}
+
+.success-card p {
+  color: #3a3a3a;
+  font-size: 13px;
+}
+
+.success-card strong {
+  color: #1c1c1c;
+}
