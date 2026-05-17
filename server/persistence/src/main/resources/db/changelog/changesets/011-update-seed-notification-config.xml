@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="010-update-seed-notification-config" author="Ignas">
+    <changeSet id="011-update-seed-notification-config" author="Ignas">
         <delete tableName="employee_notification_config"/>
         <delete tableName="service_notification_config"/>
 
