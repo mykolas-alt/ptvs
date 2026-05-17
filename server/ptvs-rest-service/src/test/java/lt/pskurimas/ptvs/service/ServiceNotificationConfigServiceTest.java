@@ -38,24 +38,6 @@ class ServiceNotificationConfigServiceTest {
     }
 
     @Test
-    void getServiceConfig_WhenExists_ReturnsConfig() {
-        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.of(config));
-
-        Optional<ServiceNotificationConfig> result = service.getServiceConfig(serviceId);
-
-        assertTrue(result.isPresent());
-    }
-
-    @Test
-    void getServiceConfig_WhenNotExists_ReturnsEmpty() {
-        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.empty());
-
-        Optional<ServiceNotificationConfig> result = service.getServiceConfig(serviceId);
-
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
     void saveServiceConfig_WhenValid_SavesSuccessfully() {
         when(serviceConfigRepo.save(config)).thenReturn(config);
         assertDoesNotThrow(() -> service.saveServiceConfig(config));

@@ -2,9 +2,12 @@ package lt.pskurimas.ptvs.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
 import lt.pskurimas.ptvs.model.ServiceNotificationConfig;
 import lt.pskurimas.ptvs.repository.ServiceNotificationConfigRepository;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,8 +17,9 @@ public class ServiceNotificationConfigService {
 
     private final ServiceNotificationConfigRepository serviceConfigRepo;
 
-    public Optional<ServiceNotificationConfig> getServiceConfig(UUID serviceId) {
-        return serviceConfigRepo.findByServiceId(serviceId);
+    @Transactional
+    public List<EmployeeNotificationConfig> getEmployeeConfigs(UUID serviceId) {
+        return findServiceConfigOrThrow(serviceId).getEmployeeConfigs();
     }
 
     @Transactional
