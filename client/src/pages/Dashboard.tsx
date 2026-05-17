@@ -54,10 +54,10 @@ export function Dashboard() {
     })
       .then(r => {
         if (!r.ok) throw new Error()
-        return r.json() as Promise<Service[]>
+        return r.json() as Promise<{ content: Service[] }>
       })
       .then(data => {
-        setServices(data)
+        setServices(data.content)
         setServicesLoading(false)
       })
       .catch(() => {
