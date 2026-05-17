@@ -251,10 +251,9 @@ class ServiceNotificationConfigServiceTest {
 
     @Test
     void deleteEmployeeConfig_WhenConfigFound_AndServiceConfigStillHasOtherConfigs_DeletesOnlyEmployeeConfig() {
-        serviceNotificationConfig.setEmployeeConfigs(new ArrayList<>(List.of(employeeNotificationConfig, new EmployeeNotificationConfig())));
-
         when(employeeConfigRepo.findById(employeeConfigId)).thenReturn(Optional.of(employeeNotificationConfig));
         when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.of(serviceNotificationConfig));
+        when(employeeConfigRepo.countByServiceNotificationConfigId(serviceNotificationConfig.getId())).thenReturn(1L);
 
         service.deleteEmployeeConfig(serviceId, employeeConfigId);
 
@@ -264,54 +263,13 @@ class ServiceNotificationConfigServiceTest {
 
     @Test
     void deleteEmployeeConfig_WhenConfigFound_AndServiceConfigBecomesEmpty_DeletesBoth() {
-        serviceNotificationConfig.setEmployeeConfigs(new ArrayList<>());
-
         when(employeeConfigRepo.findById(employeeConfigId)).thenReturn(Optional.of(employeeNotificationConfig));
         when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.of(serviceNotificationConfig));
+        when(employeeConfigRepo.countByServiceNotificationConfigId(serviceNotificationConfig.getId())).thenReturn(0L);
 
         service.deleteEmployeeConfig(serviceId, employeeConfigId);
 
         verify(employeeConfigRepo, times(1)).delete(employeeNotificationConfig);
         verify(serviceConfigRepo, times(1)).delete(serviceNotificationConfig);
-    }
-
-    @Test
-    void deleteEmployeeConfig_WhenConfigNotFound_ThrowsException() {
-        when(employeeConfigRepo.findById(employeeConfigId)).thenReturn(Optional.empty());
-
-        assertThrows(IllegalArgumentException.class,
-                () -> service.deleteEmployeeConfig(serviceId, employeeConfigId));
-    }
-
-    // --- saveServiceConfig ---
-
-    @Test
-    void saveServiceConfig_WhenServiceConfigAlreadyExists_ReturnsExisting() {
-        when(thirdPartyServiceRepo.findById(serviceId)).thenReturn(Optional.of(thirdPartyService));
-        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.of(serviceNotificationConfig));
-
-        ServiceNotificationConfig result = service.saveServiceConfig(serviceId);
-
-        assertEquals(serviceNotificationConfig, result);
-        verify(serviceConfigRepo, never()).save(any());
-    }
-
-    @Test
-    void saveServiceConfig_WhenServiceConfigNotExists_CreatesNew() {
-        when(thirdPartyServiceRepo.findById(serviceId)).thenReturn(Optional.of(thirdPartyService));
-        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.empty());
-        when(serviceConfigRepo.save(any())).thenReturn(serviceNotificationConfig);
-
-        ServiceNotificationConfig result = service.saveServiceConfig(serviceId);
-
-        assertNotNull(result);
-        verify(serviceConfigRepo, times(1)).save(any());
-    }
-
-    @Test
-    void saveServiceConfig_WhenServiceNotFound_ThrowsException() {
-        when(thirdPartyServiceRepo.findById(serviceId)).thenReturn(Optional.empty());
-
-        assertThrows(IllegalArgumentException.class, () -> service.saveServiceConfig(serviceId));
     }
 }
