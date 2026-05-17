@@ -52,9 +52,9 @@ public class NotificationScheduler {
             UUID serviceId = service.getId();
 
             for (Employee employee : service.getResponsiblePersonnel()) {
-                
+
                 UUID employeeId = employee.getId();
-            
+
                 EmployeeNotificationResult notificationDetails = EmployeeNotificationConfigService.getServiceNotificationDetails(employeeId, serviceId);
 
                 if(notificationDetails == null) {

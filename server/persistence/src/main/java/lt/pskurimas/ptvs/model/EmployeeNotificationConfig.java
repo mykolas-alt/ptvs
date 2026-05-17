@@ -22,10 +22,6 @@ public class EmployeeNotificationConfig {
     private Employee employee;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_id", nullable = false)
-    private ThirdPartyService service;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_notification_config_id")
     private ServiceNotificationConfig serviceNotificationConfig;
     

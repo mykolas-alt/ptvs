@@ -4,15 +4,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.dto.response.EmployeeNotificationResult;
 import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
-import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.EmployeeNotificationConfigRepository;
-import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
-import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,12 +16,11 @@ import java.util.UUID;
 public class EmployeeNotificationConfigService {
 
     private final EmployeeNotificationConfigRepository employeeConfigRepo;
-    private final ThirdPartyServiceRepository thirdPartyServiceRepo;
 
     @Transactional
     public EmployeeNotificationResult getServiceNotificationDetails(UUID employeeId, UUID serviceId) {
         EmployeeNotificationConfig config = employeeConfigRepo
-                .findByEmployeeIdAndServiceId(employeeId, serviceId)
+                .findByEmployeeIdAndServiceNotificationConfigServiceId(employeeId, serviceId)
                 .orElse(null);
 
         if (config == null) {
@@ -45,57 +40,5 @@ public class EmployeeNotificationConfigService {
                 .additionalEmails(additionalEmails)
                 .daysBeforeExpiry(config.getDaysBeforeExpiry())
                 .build();
-    }
-
-    public Optional<EmployeeNotificationConfig> getEmployeeConfig(UUID employeeId, UUID serviceId) {
-        return employeeConfigRepo.findByEmployeeIdAndServiceId(employeeId, serviceId);
-    }
-
-    public List<EmployeeNotificationConfig> getEmployeeConfigsByService(UUID serviceId) {
-        return employeeConfigRepo.findByServiceId(serviceId);
-    }
-
-    @Transactional
-    public EmployeeNotificationConfig saveEmployeeConfig(EmployeeNotificationConfig config, UUID serviceId) {
-        ThirdPartyService service = thirdPartyServiceRepo.findById(serviceId)
-                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
-
-        boolean isResponsible = service.getResponsiblePersonnel()
-                .stream()
-                .anyMatch(emp -> emp.getId().equals(config.getEmployee().getId()));
-
-        if (!isResponsible) {
-            throw new IllegalArgumentException("Employee is not responsible personnel for this service");
-        }
-
-        validateDaysBeforeExpiry(config.getDaysBeforeExpiry());
-        config.setService(service);
-        return employeeConfigRepo.save(config);
-    }
-
-    @Transactional
-    public EmployeeNotificationConfig updateEmployeeConfig(UUID employeeId, UUID serviceId, EmployeeNotificationConfig updated) {
-        EmployeeNotificationConfig existing = employeeConfigRepo
-                .findByEmployeeIdAndServiceId(employeeId, serviceId)
-                .orElseThrow(() -> new IllegalArgumentException("Employee config not found for employeeId: " + employeeId));
-
-        validateDaysBeforeExpiry(updated.getDaysBeforeExpiry());
-
-        existing.setDaysBeforeExpiry(updated.getDaysBeforeExpiry());
-        existing.setAdditionalEmails(updated.getAdditionalEmails());
-
-        return employeeConfigRepo.save(existing);
-    }
-
-    @Transactional
-    public void deleteEmployeeConfig(UUID employeeId, UUID serviceId) {
-        employeeConfigRepo.deleteByEmployeeIdAndServiceId(employeeId, serviceId);
-    }
-
-
-    private void validateDaysBeforeExpiry(Integer days) {
-        if (days == null || days <= 0) {
-            throw new IllegalArgumentException("Days before expiry must be greater than 0");
-        }
     }
 }

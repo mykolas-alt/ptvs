@@ -2,9 +2,12 @@ package lt.pskurimas.ptvs.controller;
 
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.annotation.CurrentUser;
+import lt.pskurimas.ptvs.annotation.RequireRole;
+import lt.pskurimas.ptvs.dto.request.CreateEmployeeNotificationConfigRequest;
+import lt.pskurimas.ptvs.dto.request.UpdateEmployeeNotificationConfigRequest;
+import lt.pskurimas.ptvs.dto.response.EmployeeNotificationConfigResponse;
 import lt.pskurimas.ptvs.model.AppUser;
-import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
-import lt.pskurimas.ptvs.model.ServiceNotificationConfig;
+import lt.pskurimas.ptvs.model.UserRole;
 import lt.pskurimas.ptvs.service.ServiceNotificationConfigService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,28 +23,42 @@ public class ServiceNotificationConfigController {
 
     private final ServiceNotificationConfigService serviceNotificationConfigService;
 
-    @GetMapping("/{serviceId}/employees")
-    public ResponseEntity<List<EmployeeNotificationConfig>> getEmployeeConfigs(
+    @GetMapping("/{serviceId}/employee-config")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<List<EmployeeNotificationConfigResponse>> getEmployeeConfigs(
             @PathVariable UUID serviceId,
             @CurrentUser AppUser user) {
         return ResponseEntity.ok(serviceNotificationConfigService.getEmployeeConfigs(serviceId));
     }
 
-    @PostMapping("/{serviceId}")
-    public ResponseEntity<ServiceNotificationConfig> createServiceConfig(
+    @PostMapping("/{serviceId}/employee-config")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<EmployeeNotificationConfigResponse> createEmployeeConfig(
             @PathVariable UUID serviceId,
+            @RequestBody CreateEmployeeNotificationConfigRequest request,
             @CurrentUser AppUser user) {
-        ServiceNotificationConfig config = ServiceNotificationConfig.builder()
-                .build();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(serviceNotificationConfigService.saveServiceConfig(config));
+                .body(serviceNotificationConfigService.addEmployeeConfig(serviceId, request));
     }
 
-    @DeleteMapping("/{serviceId}")
-    public ResponseEntity<Void> deleteServiceConfig(
+    @PutMapping("/{serviceId}/employee-config/{employeeConfigId}")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<EmployeeNotificationConfigResponse> updateEmployeeConfig(
             @PathVariable UUID serviceId,
+            @PathVariable UUID employeeConfigId,
+            @RequestBody UpdateEmployeeNotificationConfigRequest request,
             @CurrentUser AppUser user) {
-        serviceNotificationConfigService.deleteServiceConfig(serviceId);
+        return ResponseEntity.ok(
+                serviceNotificationConfigService.updateEmployeeConfig(serviceId, employeeConfigId, request));
+    }
+
+    @DeleteMapping("/{serviceId}/employee-config/{employeeConfigId}")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<Void> deleteEmployeeConfig(
+            @PathVariable UUID serviceId,
+            @PathVariable UUID employeeConfigId,
+            @CurrentUser AppUser user) {
+        serviceNotificationConfigService.deleteEmployeeConfig(serviceId, employeeConfigId);
         return ResponseEntity.noContent().build();
     }
 }
