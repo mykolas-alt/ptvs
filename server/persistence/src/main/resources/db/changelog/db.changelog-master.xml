@@ -13,4 +13,6 @@
     <include file="changesets/006-notification-vendor-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/007-seed-notification-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/008-persist-cost-reports.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/009-service-manual-deactivation.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/011-fix-service-responsible-personnel-aud.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -52,6 +52,9 @@ public class ThirdPartyService {
     @Column(name = "contract_end_date", nullable = false)
     private LocalDate contractEndDate;
 
+    @Column(name = "manual_deactivated_at")
+    private LocalDate manualDeactivatedAt;
+
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private ServiceStatus status = ServiceStatus.ACTIVE;

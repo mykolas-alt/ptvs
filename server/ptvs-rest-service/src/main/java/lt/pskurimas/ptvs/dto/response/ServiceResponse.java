@@ -23,6 +23,7 @@ public class ServiceResponse {
     private BigDecimal monthlyCost;
     private LocalDate contractStartDate;
     private LocalDate contractEndDate;
+    private LocalDate manualDeactivatedAt;
     private ServiceStatus status;
     private VendorContactResponse vendorContact;
     private Set<EmployeeResponse> responsiblePersonnel;
