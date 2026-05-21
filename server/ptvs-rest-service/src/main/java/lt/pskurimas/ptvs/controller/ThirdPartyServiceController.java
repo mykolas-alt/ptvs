@@ -59,7 +59,7 @@ public class ThirdPartyServiceController {
     @RequireRole(UserRole.ADMIN)
     public ResponseEntity<ServiceResponse> createService(@RequestBody CreateServiceRequest request,
                                                          @CurrentUser AppUser user) {
-        var service = serviceService.createService(request, user.getId());
+        var service = serviceService.createService(request, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(service);
     }
 

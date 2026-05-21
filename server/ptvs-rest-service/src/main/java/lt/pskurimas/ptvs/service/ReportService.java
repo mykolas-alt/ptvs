@@ -90,7 +90,7 @@ public class ReportService {
                                                 .calculatedRangeCost(d.getCalculatedRangeCost())
                                                 .daysActiveInRange(d.getDaysActiveInRange())
                                                 .build())
-                                .collect(Collectors.toList());
+                                .toList();
 
                 reportEntity.getDetails().addAll(detailEntities);
                 costReportRepository.save(reportEntity);
