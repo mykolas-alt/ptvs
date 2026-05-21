@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="011-fix-service-responsible-personnel-aud" author="mykolas">
+        <comment>Align audit join table with Envers collection audit schema.</comment>
+        <dropPrimaryKey tableName="service_responsible_personnel_aud"/>
+        <dropColumn tableName="service_responsible_personnel_aud" columnName="id"/>
+        <addPrimaryKey
+                tableName="service_responsible_personnel_aud"
+                columnNames="rev, service_id, employee_id"
+                constraintName="pk_service_responsible_personnel_aud"/>
+    </changeSet>
+</databaseChangeLog>
