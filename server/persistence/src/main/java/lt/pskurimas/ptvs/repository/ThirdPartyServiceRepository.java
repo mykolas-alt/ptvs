@@ -18,7 +18,7 @@ public interface ThirdPartyServiceRepository extends JpaRepository<ThirdPartySer
 
     @Query("SELECT s FROM ThirdPartyService s " +
             "WHERE s.contractStartDate <= :endDate " +
-            "AND s.contractEndDate >= :startDate")
+            "AND COALESCE(s.manualDeactivatedAt, s.contractEndDate) >= :startDate")
     List<ThirdPartyService> findActiveServicesInPeriod(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);

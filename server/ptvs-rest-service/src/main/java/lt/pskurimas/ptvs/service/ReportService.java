@@ -43,8 +43,11 @@ public class ReportService {
                 for (ThirdPartyService service : services) {
                         LocalDate effectiveStart = service.getContractStartDate().isBefore(start) ? start
                                         : service.getContractStartDate();
-                        LocalDate effectiveEnd = service.getContractEndDate().isAfter(end) ? end
-                                        : service.getContractEndDate();
+                        LocalDate serviceEnd = service.getManualDeactivatedAt() != null
+                                        && service.getManualDeactivatedAt().isBefore(service.getContractEndDate())
+                                                        ? service.getManualDeactivatedAt()
+                                                        : service.getContractEndDate();
+                        LocalDate effectiveEnd = serviceEnd.isAfter(end) ? end : serviceEnd;
 
                         long activeDays = ChronoUnit.DAYS.between(effectiveStart, effectiveEnd) + 1;
 

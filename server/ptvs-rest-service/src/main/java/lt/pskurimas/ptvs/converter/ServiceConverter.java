@@ -34,6 +34,7 @@ public class ServiceConverter {
                 .monthlyCost(service.getMonthlyCost())
                 .contractStartDate(service.getContractStartDate())
                 .contractEndDate(service.getContractEndDate())
+                .manualDeactivatedAt(service.getManualDeactivatedAt())
                 .status(service.getStatus())
                 .vendorContact(vendorContactResponse)
                 .responsiblePersonnel(employeeResponses)

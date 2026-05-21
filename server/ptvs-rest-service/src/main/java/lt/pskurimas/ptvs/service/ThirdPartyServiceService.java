@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
@@ -92,6 +93,15 @@ public class ThirdPartyServiceService {
     }
 
     public void deleteService(UUID id) {
-        repository.deleteById(id);
+        ThirdPartyService service = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
+
+        if (service.getStatus() != ServiceStatus.ACTIVE && service.getStatus() != ServiceStatus.PENDING) {
+            throw new IllegalStateException("Service must be ACTIVE or PENDING to deactivate: " + id);
+        }
+
+        service.setManualDeactivatedAt(LocalDate.now());
+        service.setStatus(ServiceStatus.DEACTIVATED);
+        repository.save(service);
     }
 }
