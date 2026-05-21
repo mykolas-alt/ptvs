@@ -8,11 +8,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lt.pskurimas.ptvs.annotation.CurrentUser;
@@ -78,6 +80,15 @@ public class ThirdPartyServiceController {
                                                          @RequestBody UpdateServiceRequest request,
                                                          @CurrentUser AppUser user) {
         var service = serviceService.updateService(id, request);
+        return ResponseEntity.ok(serviceConverter.toResponse(service));
+    }
+
+    @PatchMapping("/{id}/status")
+    @RequireRole(UserRole.ADMIN)
+    public ResponseEntity<ServiceResponse> updateServiceStatus(@PathVariable UUID id,
+                                                               @RequestParam ServiceStatus status,
+                                                               @CurrentUser AppUser user) {
+        var service = serviceService.updateServiceStatus(id, status);
         return ResponseEntity.ok(serviceConverter.toResponse(service));
     }
 

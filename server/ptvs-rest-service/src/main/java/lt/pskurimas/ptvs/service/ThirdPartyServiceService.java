@@ -82,6 +82,13 @@ public class ThirdPartyServiceService {
         return repository.findByStatus(status);
     }
 
+    public ThirdPartyService updateServiceStatus(UUID id, ServiceStatus status) {
+        ThirdPartyService service = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
+        service.setStatus(status);
+        return repository.save(service);
+    }
+
     public void deleteService(UUID id) {
         repository.deleteById(id);
     }
