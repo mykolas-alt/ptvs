@@ -1,6 +1,7 @@
 package lt.pskurimas.ptvs.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.dto.request.ServiceReportRequest;
 import lt.pskurimas.ptvs.dto.response.CostReportSummary;
 import lt.pskurimas.ptvs.dto.response.ServiceReportDetail;
@@ -28,12 +29,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ReportService {
 
         private final ThirdPartyServiceRepository repository;
         private final CostReportRepository costReportRepository;
 
         public ServiceReportResponse generateCostReport(ServiceReportRequest request) {
+                log.info("Generating cost report for startDate=[{}] endDate=[{}]", request.getStartDate(), request.getEndDate());
                 LocalDate start = request.getStartDate();
                 LocalDate end = request.getEndDate();
 
@@ -94,6 +97,7 @@ public class ReportService {
 
                 reportEntity.getDetails().addAll(detailEntities);
                 costReportRepository.save(reportEntity);
+                log.info("Cost report saved with id=[{}]", reportEntity.getId());
 
                 return ServiceReportResponse.builder()
                                 .startDate(start)
@@ -106,11 +110,13 @@ public class ReportService {
 
         @Transactional(readOnly = true)
         public Page<CostReportSummary> getAllSavedReports(Pageable pageable) {
+                log.info("Fetching saved reports page=[{}], size=[{}]", pageable.getPageNumber(), pageable.getPageSize());
                 return costReportRepository.findBy(CostReportSummary.class, pageable);
         }
 
         @Transactional(readOnly = true)
         public ServiceReportResponse getSavedReportById(UUID id) {
+                log.info("Fetching saved report by id=[{}]", id);
                 CostReport entity = costReportRepository.findById(id)
                                 .orElseThrow(() -> new IllegalArgumentException("Report not found with ID: " + id));
 

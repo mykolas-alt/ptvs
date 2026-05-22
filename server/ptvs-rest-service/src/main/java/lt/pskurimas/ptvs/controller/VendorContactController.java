@@ -3,6 +3,8 @@ package lt.pskurimas.ptvs.controller;
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.annotation.CurrentUser;
 import lt.pskurimas.ptvs.annotation.RequireRole;
+import lt.pskurimas.ptvs.audit.AuditAction;
+import lt.pskurimas.ptvs.audit.Auditable;
 import lt.pskurimas.ptvs.dto.request.CreateVendorContactRequest;
 import lt.pskurimas.ptvs.dto.response.PagedResponse;
 import lt.pskurimas.ptvs.dto.response.VendorContactResponse;
@@ -31,6 +33,7 @@ public class VendorContactController {
 
     @PostMapping
     @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.CREATE_VENDOR_CONTACT, payloadType = CreateVendorContactRequest.class)
     public ResponseEntity<VendorContactResponse> createVendorContact(@RequestBody CreateVendorContactRequest request,
                                                                      @CurrentUser AppUser user) {
         var vendorContact = vendorContactService.createVendorContact(request);

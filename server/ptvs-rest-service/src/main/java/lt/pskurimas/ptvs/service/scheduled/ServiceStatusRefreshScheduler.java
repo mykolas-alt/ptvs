@@ -2,6 +2,8 @@ package lt.pskurimas.ptvs.service.scheduled;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lt.pskurimas.ptvs.audit.AuditAction;
+import lt.pskurimas.ptvs.audit.Auditable;
 import lt.pskurimas.ptvs.util.DateProvider;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,6 +21,7 @@ public class ServiceStatusRefreshScheduler {
 
     @Async
     @Scheduled(fixedDelayString = "${ptvs.status-refresh-interval-ms}")
+    @Auditable(action = AuditAction.REFRESH_SERVICE_STATUSES)
     public void refreshStatuses() {
         LocalDate currentDate = dateProvider.getCurrentDate();
         log.info("Starting third party service status update batch for date: {}", currentDate);

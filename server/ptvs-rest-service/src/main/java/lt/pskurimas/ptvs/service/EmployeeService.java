@@ -1,6 +1,7 @@
 package lt.pskurimas.ptvs.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.converter.EmployeeConverter;
 import lt.pskurimas.ptvs.dto.request.CreateEmployeeRequest;
 import lt.pskurimas.ptvs.dto.response.EmployeeResponse;
@@ -16,12 +17,14 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class EmployeeService {
 
     private final EmployeeRepository repository;
     private final EmployeeConverter employeeConverter;
 
     public EmployeeResponse createEmployee(CreateEmployeeRequest request) {
+        log.info("Creating employee record for name=[{}]", request.getName());
         Employee employee = new Employee();
         employee.setName(request.getName());
         employee.setEmail(request.getEmail());
@@ -31,12 +34,14 @@ public class EmployeeService {
         employee.setJobTitle(request.getJobTitle());
 
         Employee persistedEmployee = repository.save(employee);
+        log.info("Created employee id=[{}]", persistedEmployee.getId());
 
         return employeeConverter.toResponse(persistedEmployee);
     }
 
     @Transactional(readOnly = true)
     public EmployeeResponse getEmployeeById(UUID id) {
+        log.info("Fetching employee by id=[{}]", id);
         return repository.findById(id)
                 .map(employeeConverter::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + id));
@@ -44,6 +49,7 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public Page<EmployeeResponse> getAllEmployees(Pageable pageable) {
+        log.info("Fetching employees page=[{}], size=[{}]", pageable.getPageNumber(), pageable.getPageSize());
         return repository.findAll(pageable)
                 .map(employeeConverter::toResponse);
     }

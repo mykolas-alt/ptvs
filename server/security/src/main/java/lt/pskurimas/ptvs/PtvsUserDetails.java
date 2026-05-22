@@ -1,28 +1,22 @@
 package lt.pskurimas.ptvs;
 
-import java.util.Collection;
-
+import lt.pskurimas.ptvs.model.AppUser;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.lang.NonNull;
 
-import lt.pskurimas.ptvs.model.AppUser;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
-public class PtvsUserDetails implements UserDetails {
-
-    @Getter
-    private final AppUser user;
+public record PtvsUserDetails(AppUser user) implements UserDetails {
 
     @Override
     @NonNull
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority(role.getPrefixedRoleName()))
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
     }
 
     @Override
