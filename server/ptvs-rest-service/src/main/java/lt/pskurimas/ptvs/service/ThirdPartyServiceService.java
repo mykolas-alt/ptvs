@@ -5,6 +5,7 @@ import lt.pskurimas.ptvs.converter.ServiceConverter;
 import lt.pskurimas.ptvs.dto.request.CreateServiceRequest;
 import lt.pskurimas.ptvs.dto.request.UpdateServiceRequest;
 import lt.pskurimas.ptvs.dto.response.ServiceResponse;
+import lt.pskurimas.ptvs.model.AppUser;
 import lt.pskurimas.ptvs.model.Employee;
 import lt.pskurimas.ptvs.model.ServiceStatus;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
@@ -12,6 +13,12 @@ import lt.pskurimas.ptvs.model.VendorContact;
 import lt.pskurimas.ptvs.repository.EmployeeRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
 import lt.pskurimas.ptvs.repository.VendorContactRepository;
+import lt.pskurimas.ptvs.util.DateProvider;
+import lt.pskurimas.ptvs.validation.ServiceValidationContext;
+import lt.pskurimas.ptvs.validation.ServiceValidationError;
+import lt.pskurimas.ptvs.validation.ServiceValidationException;
+import lt.pskurimas.ptvs.validation.ServiceValidationOperation;
+import lt.pskurimas.ptvs.validation.ThirdPartyServiceValidatorFacade;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,23 +37,31 @@ public class ThirdPartyServiceService {
     private final VendorContactRepository vendorContactRepository;
     private final EmployeeRepository employeeRepository;
     private final ServiceConverter serviceConverter;
+    private final DateProvider dateProvider;
+    private final ThirdPartyServiceValidatorFacade validatorFacade;
 
-    public ServiceResponse createService(CreateServiceRequest request, UUID createdBy) {
+    public ServiceResponse createService(CreateServiceRequest request, AppUser executingUser) {
         VendorContact vendorContact = vendorContactRepository.findById(request.getVendorContactId())
                 .orElseThrow(() -> new IllegalArgumentException("Vendor contact not found"));
 
         Set<Employee> responsiblePersonnel = employeeRepository.findByIds(request.getResponsiblePersonnelIds());
+
+        LocalDate currentDate = dateProvider.getCurrentDate();
 
         ThirdPartyService service = ThirdPartyService.builder()
                 .serviceName(request.getServiceName())
                 .monthlyCost(request.getMonthlyCost())
                 .contractStartDate(request.getContractStartDate())
                 .contractEndDate(request.getContractEndDate())
-                .status(ServiceStatus.ACTIVE)
+                .status(resolveStatus(currentDate,
+                        request.getContractStartDate(),
+                        request.getContractEndDate()))
                 .vendorContact(vendorContact)
                 .responsiblePersonnel(responsiblePersonnel)
-                .createdBy(createdBy)
+                .createdBy(executingUser.getId())
                 .build();
+
+        validatorFacade.validate(service, new ServiceValidationContext(ServiceValidationOperation.CREATE, currentDate));
 
         ThirdPartyService persistedService = repository.save(service);
 
@@ -57,10 +72,16 @@ public class ThirdPartyServiceService {
         ThirdPartyService service = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
 
+        if (service.getStatus() == ServiceStatus.DEACTIVATED) {
+            throw new ServiceValidationException(ServiceValidationError.MANUALLY_DEACTIVATED_SERVICE_MAY_NOT_BE_UPDATED);
+        }
+
         VendorContact vendorContact = vendorContactRepository.findById(request.getVendorContactId())
                 .orElseThrow(() -> new IllegalArgumentException("Vendor contact not found"));
 
         Set<Employee> responsiblePersonnel = employeeRepository.findByIds(request.getResponsiblePersonnelIds());
+
+        LocalDate currentDate = dateProvider.getCurrentDate();
 
         service.setServiceName(request.getServiceName());
         service.setMonthlyCost(request.getMonthlyCost());
@@ -68,8 +89,15 @@ public class ThirdPartyServiceService {
         service.setContractEndDate(request.getContractEndDate());
         service.setVendorContact(vendorContact);
         service.setResponsiblePersonnel(responsiblePersonnel);
+        service.setStatus(resolveStatus(currentDate,
+                service.getContractStartDate(),
+                service.getContractEndDate()
+        ));
+
+        validatorFacade.validate(service, new ServiceValidationContext(ServiceValidationOperation.UPDATE, currentDate));
 
         ThirdPartyService persistedRepository = repository.save(service);
+
         return serviceConverter.toResponse(persistedRepository);
     }
 
@@ -97,11 +125,23 @@ public class ThirdPartyServiceService {
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
 
         if (service.getStatus() != ServiceStatus.ACTIVE && service.getStatus() != ServiceStatus.PENDING) {
-            throw new IllegalStateException("Service must be ACTIVE or PENDING to deactivate: " + id);
+            throw new ServiceValidationException(ServiceValidationError.SERVICE_MUST_BE_ACTIVE_OR_PENDING_FOR_DEACTIVATION);
         }
 
-        service.setManualDeactivatedAt(LocalDate.now());
+        service.setManualDeactivatedAt(dateProvider.getCurrentDate());
         service.setStatus(ServiceStatus.DEACTIVATED);
         repository.save(service);
+    }
+
+    private ServiceStatus resolveStatus(LocalDate today,
+                                        LocalDate contractStartDate,
+                                        LocalDate contractEndDate) {
+        if (contractStartDate.isAfter(today)) {
+            return ServiceStatus.PENDING;
+        }
+        if (contractEndDate.isBefore(today)) {
+            return ServiceStatus.EXPIRED;
+        }
+        return ServiceStatus.ACTIVE;
     }
 }
