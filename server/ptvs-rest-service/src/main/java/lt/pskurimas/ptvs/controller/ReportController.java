@@ -1,6 +1,5 @@
 package lt.pskurimas.ptvs.controller;
 
-import java.util.List;
 import java.util.UUID;
 
 import lt.pskurimas.ptvs.dto.response.PagedResponse;
@@ -43,7 +42,7 @@ public class ReportController {
     @GetMapping("cost-report")
     @RequireRole(UserRole.ADMIN)
     public PagedResponse<CostReportSummary> getAllReports(@CurrentUser AppUser user,
-                                                          @PageableDefault Pageable pageable) {
+            @PageableDefault Pageable pageable) {
         return PagedResponse.of(reportService.getAllSavedReports(pageable));
     }
 

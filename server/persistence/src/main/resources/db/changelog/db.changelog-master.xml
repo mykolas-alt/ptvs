@@ -15,4 +15,5 @@
     <include file="changesets/008-persist-cost-reports.xml" relativeToChangelogFile="true"/>
     <include file="changesets/009-service-manual-deactivation.xml" relativeToChangelogFile="true"/>
     <include file="changesets/011-fix-service-responsible-personnel-aud.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/012-async-cost-reports.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
