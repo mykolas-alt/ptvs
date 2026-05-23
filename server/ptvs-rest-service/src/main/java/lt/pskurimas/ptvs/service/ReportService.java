@@ -11,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -27,7 +29,12 @@ public class ReportService {
                 CostReport initialReport = mapper.toInitialEntity(request);
                 CostReport savedReport = costReportRepository.saveAndFlush(initialReport);
 
-                costReportAsyncService.asyncCalculateReport(savedReport.getId(), request);
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                                costReportAsyncService.asyncCalculateReport(savedReport.getId(), request);
+                        }
+                });
 
                 return mapper.toResponseDto(savedReport);
         }
