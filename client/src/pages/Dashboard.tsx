@@ -6,7 +6,7 @@ import '../styles/Dashboard.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
-type ServiceStatus = 'ACTIVE' | 'ENDED' | 'PENDING'
+type ServiceStatus = 'ACTIVE' | 'PENDING' | 'DEACTIVATED' | 'EXPIRED'
 
 type VendorContact = {
   id: string
@@ -45,11 +45,12 @@ type EditForm = {
 
 const STATUS_CLASS: Record<ServiceStatus, string> = {
   ACTIVE: 'status-active',
-  ENDED: 'status-ended',
   PENDING: 'status-pending',
+  DEACTIVATED: 'status-deactivated',
+  EXPIRED: 'status-expired',
 }
 
-const ALL_STATUSES: ServiceStatus[] = ['ACTIVE', 'PENDING', 'ENDED']
+const ALL_STATUSES: ServiceStatus[] = ['ACTIVE', 'PENDING', 'DEACTIVATED', 'EXPIRED']
 const PAGE_SIZE = 10
 
 export function Dashboard() {
@@ -129,7 +130,8 @@ export function Dashboard() {
   }
 
   async function handleDeactivate(svc: Service) {
-    const next: ServiceStatus = svc.status === 'ENDED' ? 'ACTIVE' : 'ENDED'
+    const isInactive = svc.status === 'DEACTIVATED' || svc.status === 'EXPIRED'
+    const next: ServiceStatus = isInactive ? 'ACTIVE' : 'DEACTIVATED'
     const token = getToken()
     try {
       const res = await fetch(`${apiBaseUrl}/services/${svc.id}/status?status=${next}`, {
@@ -362,10 +364,10 @@ export function Dashboard() {
                   <>
                     <button className="btn-secondary btn-sm" onClick={() => openEdit(selected)}>Edit</button>
                     <button
-                      className={`btn-sm ${selected.status === 'ENDED' ? 'btn-activate' : 'btn-deactivate'}`}
+                      className={`btn-sm ${selected.status === 'DEACTIVATED' || selected.status === 'EXPIRED' ? 'btn-activate' : 'btn-deactivate'}`}
                       onClick={() => handleDeactivate(selected)}
                     >
-                      {selected.status === 'ENDED' ? 'Activate' : 'Deactivate'}
+                      {selected.status === 'DEACTIVATED' || selected.status === 'EXPIRED' ? 'Activate' : 'Deactivate'}
                     </button>
                   </>
                 )}
