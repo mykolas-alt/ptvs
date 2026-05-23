@@ -84,7 +84,7 @@ public class ThirdPartyServiceController {
                                                                @RequestParam ServiceStatus status,
                                                                @CurrentUser AppUser user) {
         var service = serviceService.updateServiceStatus(id, status);
-        return ResponseEntity.ok(serviceConverter.toResponse(service));
+        return ResponseEntity.ok(service);
     }
 
     @DeleteMapping("/{id}")
