@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="015-app-user-audit" author="mykolas">
+        <comment>Create Envers audit tables for app users and roles</comment>
+
+        <createTable tableName="app_user_aud">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="rev" type="int">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_app_user_aud_rev" references="revinfo(rev)"/>
+            </column>
+            <column name="revend" type="int"/>
+            <column name="revtype" type="tinyint"/>
+            <column name="username" type="varchar(100)"/>
+            <column name="password_hash" type="varchar(255)"/>
+            <column name="version" type="bigint"/>
+        </createTable>
+
+        <createTable tableName="app_user_role_aud">
+            <column name="rev" type="int">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_app_user_role_aud_rev" references="revinfo(rev)"/>
+            </column>
+            <column name="revend" type="int"/>
+            <column name="revtype" type="tinyint"/>
+            <column name="user_id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="role" type="varchar(50)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="app_user_aud" indexName="idx_app_user_aud_rev">
+            <column name="rev"/>
+        </createIndex>
+
+        <createIndex tableName="app_user_role_aud" indexName="idx_app_user_role_aud_rev">
+            <column name="rev"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

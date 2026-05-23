@@ -2,7 +2,7 @@ package lt.pskurimas.ptvs.converter;
 
 import org.springframework.stereotype.Component;
 
-import lt.pskurimas.ptvs.dto.response.EmployeeResponse;
+import lt.pskurimas.ptvs.dto.response.employee.EmployeeResponse;
 import lt.pskurimas.ptvs.model.Employee;
 
 @Component
@@ -17,6 +17,7 @@ public class EmployeeConverter {
                 .address(employee.getAddress())
                 .department(employee.getDepartment())
                 .jobTitle(employee.getJobTitle())
+                .version(employee.getVersion())
                 .build();
     }
 }

@@ -1,11 +1,12 @@
-package lt.pskurimas.ptvs.dto.response;
+package lt.pskurimas.ptvs.dto.response.reports;
+
+import lombok.Builder;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import lombok.Builder;
-import lombok.Getter;
 
 @Getter
 @Builder

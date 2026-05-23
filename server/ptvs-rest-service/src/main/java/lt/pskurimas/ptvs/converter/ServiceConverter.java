@@ -6,9 +6,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import lt.pskurimas.ptvs.dto.response.EmployeeResponse;
-import lt.pskurimas.ptvs.dto.response.ServiceResponse;
-import lt.pskurimas.ptvs.dto.response.VendorContactResponse;
+import lt.pskurimas.ptvs.dto.response.employee.EmployeeResponse;
+import lt.pskurimas.ptvs.dto.response.service.ServiceResponse;
+import lt.pskurimas.ptvs.dto.response.vendorcontact.VendorContactResponse;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +39,7 @@ public class ServiceConverter {
                 .vendorContact(vendorContactResponse)
                 .responsiblePersonnel(employeeResponses)
                 .createdBy(service.getCreatedBy())
+                .version(service.getVersion())
                 .build();
     }
 }

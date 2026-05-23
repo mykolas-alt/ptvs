@@ -5,9 +5,10 @@ import lt.pskurimas.ptvs.annotation.CurrentUser;
 import lt.pskurimas.ptvs.annotation.RequireRole;
 import lt.pskurimas.ptvs.audit.AuditAction;
 import lt.pskurimas.ptvs.audit.Auditable;
-import lt.pskurimas.ptvs.dto.request.CreateVendorContactRequest;
+import lt.pskurimas.ptvs.dto.request.vendorcontact.CreateVendorContactRequest;
+import lt.pskurimas.ptvs.dto.request.vendorcontact.UpdateVendorContactRequest;
 import lt.pskurimas.ptvs.dto.response.PagedResponse;
-import lt.pskurimas.ptvs.dto.response.VendorContactResponse;
+import lt.pskurimas.ptvs.dto.response.vendorcontact.VendorContactResponse;
 import lt.pskurimas.ptvs.model.AppUser;
 import lt.pskurimas.ptvs.model.UserRole;
 import lt.pskurimas.ptvs.service.VendorContactService;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,6 +47,16 @@ public class VendorContactController {
     public ResponseEntity<VendorContactResponse> getVendorContact(@PathVariable UUID id,
                                                                   @CurrentUser AppUser user) {
         var vendorContact = vendorContactService.getVendorContactById(id);
+        return ResponseEntity.ok(vendorContact);
+    }
+
+    @PutMapping("/{id}")
+    @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.UPDATE_VENDOR_CONTACT, payloadType = UpdateVendorContactRequest.class)
+    public ResponseEntity<VendorContactResponse> updateVendorContact(@PathVariable UUID id,
+                                                                     @RequestBody UpdateVendorContactRequest request,
+                                                                     @CurrentUser AppUser user) {
+        var vendorContact = vendorContactService.updateVendorContact(id, request);
         return ResponseEntity.ok(vendorContact);
     }
 

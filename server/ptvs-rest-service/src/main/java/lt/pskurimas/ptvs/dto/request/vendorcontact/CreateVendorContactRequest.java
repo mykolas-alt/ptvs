@@ -1,9 +1,6 @@
-package lt.pskurimas.ptvs.dto.response;
-
-import java.util.UUID;
+package lt.pskurimas.ptvs.dto.request.vendorcontact;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,13 +9,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class EmployeeResponse {
-    private UUID id;
+public class CreateVendorContactRequest {
     private String name;
     private String email;
     private String phone;
     private String address;
+    private String vendorName;
     private String department;
-    private String jobTitle;
 }
