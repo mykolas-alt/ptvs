@@ -30,6 +30,11 @@ export function Navbar({ userInfo, onLogout }: NavbarProps) {
         <NavLink to="/notifications" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           Notifications
         </NavLink>
+        {userInfo?.roles.includes('ADMIN') && (
+          <NavLink to="/accounts" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            Accounts
+          </NavLink>
+        )}
       </div>
       <div className="navbar-user">
         {userInfo && <span className="navbar-username">{userInfo.username}</span>}

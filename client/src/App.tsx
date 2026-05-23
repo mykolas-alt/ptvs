@@ -7,6 +7,7 @@ import { Reports } from './pages/Reports'
 import { VendorContacts } from './pages/VendorContacts'
 import { Employees } from './pages/Employees'
 import { Notifications } from './pages/Notifications'
+import { UserAccounts } from './pages/UserAccounts'
 import './App.css'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path="/contacts" element={<VendorContacts />} />
         <Route path="/employees" element={<Employees />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/accounts" element={<UserAccounts />} />
       </Routes>
     </Router>
   )

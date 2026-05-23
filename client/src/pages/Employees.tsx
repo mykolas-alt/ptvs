@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
+import { OptimisticLockConflictModal } from '../components/OptimisticLockConflictModal'
 import '../styles/ManagePage.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
@@ -41,10 +42,13 @@ export function Employees() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<EmpForm>(EMPTY)
   const [errors, setErrors] = useState<EmpErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showConflict, setShowConflict] = useState(false)
+  const [conflictLoading, setConflictLoading] = useState(false)
 
   function getToken() { return localStorage.getItem(tokenStorageKey) }
 
@@ -67,6 +71,45 @@ export function Employees() {
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }))
   }
 
+  function openCreate() {
+    setEditingId(null)
+    setForm(EMPTY)
+    setErrors({})
+    setSubmitError(null)
+    setShowForm(true)
+  }
+
+  function openEdit(emp: Employee) {
+    setEditingId(emp.id)
+    setForm({ name: emp.name, email: emp.email, phone: emp.phone ?? '', department: emp.department, jobTitle: emp.jobTitle ?? '' })
+    setErrors({})
+    setSubmitError(null)
+    setShowForm(true)
+  }
+
+  function closeForm() {
+    setShowForm(false)
+    setEditingId(null)
+    setForm(EMPTY)
+    setErrors({})
+  }
+
+  async function submitUpdate(forceUpdate = false) {
+    if (!editingId) return
+    const token = getToken()
+    const res = await fetch(`${apiBaseUrl}/employees/${editingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...form, ...(forceUpdate && { forceUpdate: true }) }),
+    })
+    if (res.status === 409) { setShowConflict(true); return }
+    if (!res.ok) throw new Error('Failed to update employee.')
+    const updated = await res.json() as Employee
+    setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e))
+    setShowConflict(false)
+    closeForm()
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const errs = validate(form)
@@ -75,40 +118,81 @@ export function Employees() {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const res = await fetch(`${apiBaseUrl}/employees`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify(form),
-      })
-      if (!res.ok) throw new Error('Failed to create employee.')
-      const created = await res.json() as Employee
-      setEmployees(prev => [created, ...prev])
-      setForm(EMPTY)
-      setErrors({})
-      setShowForm(false)
+      if (editingId) {
+        await submitUpdate()
+      } else {
+        const res = await fetch(`${apiBaseUrl}/employees`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+          body: JSON.stringify(form),
+        })
+        if (!res.ok) throw new Error('Failed to create employee.')
+        const created = await res.json() as Employee
+        setEmployees(prev => [created, ...prev])
+        closeForm()
+      }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to create employee.')
+      setSubmitError(err instanceof Error ? err.message : 'Failed to save employee.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleConflictReload() {
+    if (!editingId) return
+    setConflictLoading(true)
+    try {
+      const res = await fetch(`${apiBaseUrl}/employees/${editingId}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error()
+      const fresh = await res.json() as Employee
+      setEmployees(prev => prev.map(e => e.id === fresh.id ? fresh : e))
+      setForm({ name: fresh.name, email: fresh.email, phone: fresh.phone ?? '', department: fresh.department, jobTitle: fresh.jobTitle ?? '' })
+      setShowConflict(false)
+    } catch {
+      setSubmitError('Failed to reload employee data.')
+      setShowConflict(false)
+    } finally {
+      setConflictLoading(false)
+    }
+  }
+
+  async function handleConflictForce() {
+    setConflictLoading(true)
+    try {
+      await submitUpdate(true)
+    } catch {
+      setSubmitError('Force update failed.')
+      setShowConflict(false)
+    } finally {
+      setConflictLoading(false)
     }
   }
 
   return (
     <div className="page-container">
       <Navbar userInfo={userInfo} onLogout={logout} />
+      {showConflict && (
+        <OptimisticLockConflictModal
+          entityLabel="employee"
+          onReload={handleConflictReload}
+          onForce={handleConflictForce}
+          onClose={() => setShowConflict(false)}
+          isLoading={conflictLoading}
+        />
+      )}
       <main className="manage-main">
         <div className="manage-toolbar">
           <h1>Employees</h1>
-          <button className="btn-primary btn-sm-add" onClick={() => setShowForm(v => !v)}>
-            {showForm ? 'Cancel' : '+ Add Employee'}
+          <button className="btn-primary btn-sm-add" onClick={showForm && !editingId ? closeForm : openCreate}>
+            {showForm && !editingId ? 'Cancel' : '+ Add Employee'}
           </button>
         </div>
 
         {showForm && (
           <form className="manage-form" onSubmit={handleSubmit} noValidate>
+            <p className="manage-form-title">{editingId ? 'Edit Employee' : 'New Employee'}</p>
             <div className="manage-form-grid">
               <div className={`form-field${errors.name ? ' has-error' : ''}`}>
                 <label>Name</label>
@@ -135,9 +219,14 @@ export function Employees() {
               </div>
             </div>
             {submitError && <p className="field-error">{submitError}</p>}
-            <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save Employee'}
-            </button>
+            <div className="manage-form-actions">
+              <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : editingId ? 'Save Changes' : 'Save Employee'}
+              </button>
+              {editingId && (
+                <button type="button" className="btn-cancel" onClick={closeForm}>Cancel</button>
+              )}
+            </div>
           </form>
         )}
 
@@ -153,18 +242,27 @@ export function Employees() {
                   <th>Department</th>
                   <th>Job Title</th>
                   <th>Phone</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {employees.length === 0 ? (
-                  <tr><td colSpan={5} className="empty-row">No employees yet.</td></tr>
+                  <tr><td colSpan={6} className="empty-row">No employees yet.</td></tr>
                 ) : employees.map(emp => (
-                  <tr key={emp.id}>
+                  <tr key={emp.id} className={editingId === emp.id ? 'row-editing' : ''}>
                     <td>{emp.name}</td>
                     <td>{emp.email}</td>
                     <td>{emp.department}</td>
                     <td>{emp.jobTitle || '—'}</td>
                     <td>{emp.phone || '—'}</td>
+                    <td className="action-cell">
+                      <button
+                        className="btn-row-edit"
+                        onClick={() => editingId === emp.id ? closeForm() : openEdit(emp)}
+                      >
+                        {editingId === emp.id ? 'Cancel' : 'Edit'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

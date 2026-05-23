@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
+import { OptimisticLockConflictModal } from '../components/OptimisticLockConflictModal'
 import '../styles/ManagePage.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
@@ -41,10 +42,13 @@ export function VendorContacts() {
   const [contacts, setContacts] = useState<VendorContact[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<ContactForm>(EMPTY)
   const [errors, setErrors] = useState<ContactErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showConflict, setShowConflict] = useState(false)
+  const [conflictLoading, setConflictLoading] = useState(false)
 
   function getToken() { return localStorage.getItem(tokenStorageKey) }
 
@@ -67,6 +71,45 @@ export function VendorContacts() {
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }))
   }
 
+  function openCreate() {
+    setEditingId(null)
+    setForm(EMPTY)
+    setErrors({})
+    setSubmitError(null)
+    setShowForm(true)
+  }
+
+  function openEdit(c: VendorContact) {
+    setEditingId(c.id)
+    setForm({ vendorName: c.vendorName, name: c.name, email: c.email, phone: c.phone ?? '' })
+    setErrors({})
+    setSubmitError(null)
+    setShowForm(true)
+  }
+
+  function closeForm() {
+    setShowForm(false)
+    setEditingId(null)
+    setForm(EMPTY)
+    setErrors({})
+  }
+
+  async function submitUpdate(forceUpdate = false) {
+    if (!editingId) return
+    const token = getToken()
+    const res = await fetch(`${apiBaseUrl}/vendor-contacts/${editingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...form, ...(forceUpdate && { forceUpdate: true }) }),
+    })
+    if (res.status === 409) { setShowConflict(true); return }
+    if (!res.ok) throw new Error('Failed to update contact.')
+    const updated = await res.json() as VendorContact
+    setContacts(prev => prev.map(c => c.id === updated.id ? updated : c))
+    setShowConflict(false)
+    closeForm()
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const errs = validate(form)
@@ -75,40 +118,81 @@ export function VendorContacts() {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const res = await fetch(`${apiBaseUrl}/vendor-contacts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify(form),
-      })
-      if (!res.ok) throw new Error('Failed to create contact.')
-      const created = await res.json() as VendorContact
-      setContacts(prev => [created, ...prev])
-      setForm(EMPTY)
-      setErrors({})
-      setShowForm(false)
+      if (editingId) {
+        await submitUpdate()
+      } else {
+        const res = await fetch(`${apiBaseUrl}/vendor-contacts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+          body: JSON.stringify(form),
+        })
+        if (!res.ok) throw new Error('Failed to create contact.')
+        const created = await res.json() as VendorContact
+        setContacts(prev => [created, ...prev])
+        closeForm()
+      }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to create contact.')
+      setSubmitError(err instanceof Error ? err.message : 'Failed to save contact.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleConflictReload() {
+    if (!editingId) return
+    setConflictLoading(true)
+    try {
+      const res = await fetch(`${apiBaseUrl}/vendor-contacts/${editingId}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error()
+      const fresh = await res.json() as VendorContact
+      setContacts(prev => prev.map(c => c.id === fresh.id ? fresh : c))
+      setForm({ vendorName: fresh.vendorName, name: fresh.name, email: fresh.email, phone: fresh.phone ?? '' })
+      setShowConflict(false)
+    } catch {
+      setSubmitError('Failed to reload contact data.')
+      setShowConflict(false)
+    } finally {
+      setConflictLoading(false)
+    }
+  }
+
+  async function handleConflictForce() {
+    setConflictLoading(true)
+    try {
+      await submitUpdate(true)
+    } catch {
+      setSubmitError('Force update failed.')
+      setShowConflict(false)
+    } finally {
+      setConflictLoading(false)
     }
   }
 
   return (
     <div className="page-container">
       <Navbar userInfo={userInfo} onLogout={logout} />
+      {showConflict && (
+        <OptimisticLockConflictModal
+          entityLabel="vendor contact"
+          onReload={handleConflictReload}
+          onForce={handleConflictForce}
+          onClose={() => setShowConflict(false)}
+          isLoading={conflictLoading}
+        />
+      )}
       <main className="manage-main">
         <div className="manage-toolbar">
           <h1>Vendor Contacts</h1>
-          <button className="btn-primary btn-sm-add" onClick={() => setShowForm(v => !v)}>
-            {showForm ? 'Cancel' : '+ Add Contact'}
+          <button className="btn-primary btn-sm-add" onClick={showForm && !editingId ? closeForm : openCreate}>
+            {showForm && !editingId ? 'Cancel' : '+ Add Contact'}
           </button>
         </div>
 
         {showForm && (
           <form className="manage-form" onSubmit={handleSubmit} noValidate>
+            <p className="manage-form-title">{editingId ? 'Edit Contact' : 'New Contact'}</p>
             <div className="manage-form-grid">
               <div className={`form-field${errors.vendorName ? ' has-error' : ''}`}>
                 <label>Vendor Name</label>
@@ -132,9 +216,14 @@ export function VendorContacts() {
               </div>
             </div>
             {submitError && <p className="field-error">{submitError}</p>}
-            <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save Contact'}
-            </button>
+            <div className="manage-form-actions">
+              <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : editingId ? 'Save Changes' : 'Save Contact'}
+              </button>
+              {editingId && (
+                <button type="button" className="btn-cancel" onClick={closeForm}>Cancel</button>
+              )}
+            </div>
           </form>
         )}
 
@@ -149,17 +238,26 @@ export function VendorContacts() {
                   <th>Contact Name</th>
                   <th>Email</th>
                   <th>Phone</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {contacts.length === 0 ? (
-                  <tr><td colSpan={4} className="empty-row">No vendor contacts yet.</td></tr>
+                  <tr><td colSpan={5} className="empty-row">No vendor contacts yet.</td></tr>
                 ) : contacts.map(c => (
-                  <tr key={c.id}>
+                  <tr key={c.id} className={editingId === c.id ? 'row-editing' : ''}>
                     <td>{c.vendorName}</td>
                     <td>{c.name}</td>
                     <td>{c.email}</td>
                     <td>{c.phone || '—'}</td>
+                    <td className="action-cell">
+                      <button
+                        className="btn-row-edit"
+                        onClick={() => editingId === c.id ? closeForm() : openEdit(c)}
+                      >
+                        {editingId === c.id ? 'Cancel' : 'Edit'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
