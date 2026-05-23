@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
+import { OptimisticLockConflictModal } from '../components/OptimisticLockConflictModal'
 import '../styles/Dashboard.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
@@ -65,6 +66,8 @@ export function Dashboard() {
   const [editForm, setEditForm] = useState<EditForm | null>(null)
   const [editError, setEditError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showConflict, setShowConflict] = useState(false)
+  const [conflictLoading, setConflictLoading] = useState(false)
 
   function getToken() {
     return localStorage.getItem(tokenStorageKey)
@@ -141,6 +144,38 @@ export function Dashboard() {
     }
   }
 
+  function buildEditPayload(form: EditForm, forceUpdate = false) {
+    return {
+      serviceName: form.serviceName,
+      monthlyCost: Number(form.monthlyCost),
+      contractStartDate: form.contractStartDate,
+      contractEndDate: form.contractEndDate,
+      vendorContactId: form.vendorContactId,
+      responsiblePersonnelIds: form.responsiblePersonnelIds,
+      ...(forceUpdate && { forceUpdate: true }),
+    }
+  }
+
+  async function submitEdit(forceUpdate = false) {
+    if (!editForm || !selected) return
+    const token = getToken()
+    const res = await fetch(`${apiBaseUrl}/services/${selected.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(buildEditPayload(editForm, forceUpdate)),
+    })
+    if (res.status === 409) {
+      setShowConflict(true)
+      return
+    }
+    if (!res.ok) throw new Error()
+    const updated = await res.json() as Service
+    setServices(prev => prev.map(s => s.id === updated.id ? updated : s))
+    setSelected(updated)
+    setIsEditing(false)
+    setShowConflict(false)
+  }
+
   async function handleEditSubmit() {
     if (!editForm || !selected) return
     if (!editForm.serviceName.trim()) { setEditError('Service name is required.'); return }
@@ -152,29 +187,53 @@ export function Dashboard() {
 
     setIsSubmitting(true)
     setEditError(null)
-    const token = getToken()
     try {
-      const res = await fetch(`${apiBaseUrl}/services/${selected.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          serviceName: editForm.serviceName,
-          monthlyCost: Number(editForm.monthlyCost),
-          contractStartDate: editForm.contractStartDate,
-          contractEndDate: editForm.contractEndDate,
-          vendorContactId: editForm.vendorContactId,
-          responsiblePersonnelIds: editForm.responsiblePersonnelIds,
-        }),
-      })
-      if (!res.ok) throw new Error()
-      const updated = await res.json() as Service
-      setServices(prev => prev.map(s => s.id === updated.id ? updated : s))
-      setSelected(updated)
-      setIsEditing(false)
+      await submitEdit()
     } catch {
       setEditError('Failed to update service.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleConflictReload() {
+    if (!selected) return
+    setConflictLoading(true)
+    const token = getToken()
+    try {
+      const res = await fetch(`${apiBaseUrl}/services/${selected.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error()
+      const fresh = await res.json() as Service
+      setServices(prev => prev.map(s => s.id === fresh.id ? fresh : s))
+      setSelected(fresh)
+      setEditForm({
+        serviceName: fresh.serviceName,
+        monthlyCost: String(fresh.monthlyCost),
+        contractStartDate: fresh.contractStartDate,
+        contractEndDate: fresh.contractEndDate,
+        vendorContactId: fresh.vendorContact?.id ?? '',
+        responsiblePersonnelIds: fresh.responsiblePersonnel.map(e => e.id),
+      })
+      setShowConflict(false)
+    } catch {
+      setEditError('Failed to reload service data.')
+      setShowConflict(false)
+    } finally {
+      setConflictLoading(false)
+    }
+  }
+
+  async function handleConflictForce() {
+    setConflictLoading(true)
+    try {
+      await submitEdit(true)
+    } catch {
+      setEditError('Force update failed.')
+      setShowConflict(false)
+    } finally {
+      setConflictLoading(false)
     }
   }
 
@@ -280,6 +339,16 @@ export function Dashboard() {
           )}
         </div>
       </main>
+
+      {showConflict && (
+        <OptimisticLockConflictModal
+          entityLabel="service"
+          onReload={handleConflictReload}
+          onForce={handleConflictForce}
+          onClose={() => setShowConflict(false)}
+          isLoading={conflictLoading}
+        />
+      )}
 
       {selected && (
         <div className="modal-overlay" onClick={() => { setSelected(null); setIsEditing(false) }}>
