@@ -37,6 +37,7 @@ public class CostReportGenerator {
                 .orElseThrow(() -> new IllegalArgumentException("Report not found: " + reportId));
         try {
             calculateReport(reportEntity, request.getStartDate(), request.getEndDate());
+            log.info("Report completed for reportId: {}", reportId);
         } catch (Exception e) {
             log.error("Report calculation failed for reportId: {}", reportId, e);
             reportEntity.setStatus(ReportStatus.FAILED);
