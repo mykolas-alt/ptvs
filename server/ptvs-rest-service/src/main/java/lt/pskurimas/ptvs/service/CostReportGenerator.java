@@ -1,6 +1,7 @@
 package lt.pskurimas.ptvs.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.dto.request.ServiceReportRequest;
 import lt.pskurimas.ptvs.dto.response.ServiceReportDetail;
 import lt.pskurimas.ptvs.converter.ReportConverter;
@@ -10,9 +11,9 @@ import lt.pskurimas.ptvs.model.ReportStatus;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.CostReportRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -22,17 +23,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
-public class CostReportAsyncService {
+public class CostReportGenerator {
 
     private final ThirdPartyServiceRepository thirdPartyServiceRepository;
     private final CostReportRepository costReportRepository;
     private final ReportConverter mapper;
 
-    @Async
     @Transactional
-    public void asyncCalculateReport(UUID reportId, ServiceReportRequest request) {
+    public void calculateAndSaveReport(UUID reportId, ServiceReportRequest request) {
         try {
             CostReport reportEntity = costReportRepository.findById(reportId)
                     .orElseThrow(() -> new IllegalArgumentException("Report not found: " + reportId));
@@ -41,7 +42,9 @@ public class CostReportAsyncService {
             LocalDate end = request.getEndDate();
 
             List<ThirdPartyService> services = thirdPartyServiceRepository.findActiveServicesInPeriod(start, end);
-            List<ServiceReportDetail> details = new ArrayList<>();
+
+            List<CostReportDetailEntity> detailEntities = new ArrayList<>();
+            BigDecimal totalCost = BigDecimal.ZERO;
 
             for (ThirdPartyService service : services) {
                 LocalDate effectiveStart = service.getContractStartDate().isBefore(start) ? start
@@ -58,16 +61,11 @@ public class CostReportAsyncService {
                 BigDecimal rangeCost = dailyRate.multiply(BigDecimal.valueOf(activeDays)).setScale(2,
                         RoundingMode.HALF_UP);
 
-                details.add(mapper.toDetailDto(service, activeDays, rangeCost));
+                totalCost = totalCost.add(rangeCost);
+                ServiceReportDetail dto = mapper.toDetailDto(service, activeDays, rangeCost);
+                CostReportDetailEntity detailEntity = mapper.toDetailEntity(dto, reportEntity);
+                detailEntities.add(detailEntity);
             }
-
-            BigDecimal totalCost = details.stream()
-                    .map(ServiceReportDetail::getCalculatedRangeCost)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            List<CostReportDetailEntity> detailEntities = details.stream()
-                    .map(d -> mapper.toDetailEntity(d, reportEntity))
-                    .toList();
 
             reportEntity.setTotalCost(totalCost);
             reportEntity.setStatus(ReportStatus.COMPLETED);
@@ -77,8 +75,7 @@ public class CostReportAsyncService {
             costReportRepository.save(reportEntity);
 
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Report calculation failed for reportId: {}", reportId, e);
             costReportRepository.findById(reportId).ifPresent(report -> {
                 report.setStatus(ReportStatus.FAILED);
                 costReportRepository.save(report);
