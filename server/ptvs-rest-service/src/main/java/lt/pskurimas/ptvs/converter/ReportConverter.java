@@ -19,89 +19,80 @@ import java.util.stream.Collectors;
 @Component
 public class ReportConverter {
 
-    public CostReport toInitialEntity(ServiceReportRequest request) {
-        return CostReport.builder()
-                .startDate(request.getStartDate())
-                .endDate(request.getEndDate())
-                .totalCost(BigDecimal.ZERO)
-                .status(ReportStatus.PROCESSING)
-                .details(new ArrayList<>())
-                .build();
-    }
-
-    public ServiceReportDetail toDetailDto(ThirdPartyService service, long activeDays, BigDecimal rangeCost) {
-        return ServiceReportDetail.builder()
-                .serviceName(service.getServiceName())
-                .vendorName(service.getVendorContact().getVendorName())
-                .monthlyRate(service.getMonthlyCost())
-                .calculatedRangeCost(rangeCost)
-                .daysActiveInRange(activeDays)
-                .build();
-    }
-
-    public ServiceReportDetail toDetailDtoFromEntity(CostReportDetailEntity entity) {
-        return ServiceReportDetail.builder()
-                .serviceName(entity.getServiceName())
-                .vendorName(entity.getVendorName())
-                .monthlyRate(entity.getMonthlyRate())
-                .calculatedRangeCost(entity.getCalculatedRangeCost())
-                .daysActiveInRange(entity.getDaysActiveInRange())
-                .build();
-    }
-
-    public CostReportDetailEntity toDetailEntity(ServiceReportDetail dto, CostReport report) {
-        return CostReportDetailEntity.builder()
-                .costReport(report)
-                .serviceName(dto.getServiceName())
-                .vendorName(dto.getVendorName())
-                .monthlyRate(dto.getMonthlyRate())
-                .calculatedRangeCost(dto.getCalculatedRangeCost())
-                .daysActiveInRange(dto.getDaysActiveInRange())
-                .build();
-    }
-
-    public ServiceReportResponse toResponseDto(CostReport entity) {
-        if (entity.getStatus() != ReportStatus.COMPLETED) {
-            return ServiceReportResponse.builder()
-                    .id(entity.getId())
-                    .generatedAt(entity.getGeneratedAt())
-                    .status(entity.getStatus().name())
-                    .startDate(entity.getStartDate())
-                    .endDate(entity.getEndDate())
-                    .totalCost(entity.getTotalCost())
-                    .details(new ArrayList<>())
-                    .build();
+        public CostReport toInitialEntity(ServiceReportRequest request) {
+                return CostReport.builder()
+                                .startDate(request.getStartDate())
+                                .endDate(request.getEndDate())
+                                .totalCost(BigDecimal.ZERO)
+                                .status(ReportStatus.PROCESSING)
+                                .details(new ArrayList<>())
+                                .build();
         }
 
-        List<ServiceReportDetail> responseDetails = entity.getDetails().stream()
-                .map(this::toDetailDtoFromEntity)
-                .toList();
+        public ServiceReportDetail toDetailDtoFromEntity(CostReportDetailEntity entity) {
+                return ServiceReportDetail.builder()
+                                .serviceName(entity.getServiceName())
+                                .vendorName(entity.getVendorName())
+                                .monthlyRate(entity.getMonthlyRate())
+                                .calculatedRangeCost(entity.getCalculatedRangeCost())
+                                .daysActiveInRange(entity.getDaysActiveInRange())
+                                .build();
+        }
 
-        Map<String, BigDecimal> costByServiceType = responseDetails.stream()
-                .collect(Collectors.toMap(
-                        detail -> detail.getServiceName() + " (" + detail.getVendorName() + ")",
-                        ServiceReportDetail::getCalculatedRangeCost,
-                        BigDecimal::add));
+        public CostReportDetailEntity toDetailEntity(ThirdPartyService service, CostReport report,
+                        long activeDays, BigDecimal rangeCost) {
+                return CostReportDetailEntity.builder()
+                                .costReport(report)
+                                .serviceName(service.getServiceName())
+                                .vendorName(service.getVendorContact().getVendorName())
+                                .monthlyRate(service.getMonthlyCost())
+                                .calculatedRangeCost(rangeCost)
+                                .daysActiveInRange(activeDays)
+                                .build();
+        }
 
-        return ServiceReportResponse.builder()
-                .id(entity.getId())
-                .generatedAt(entity.getGeneratedAt())
-                .status(entity.getStatus().name())
-                .startDate(entity.getStartDate())
-                .endDate(entity.getEndDate())
-                .totalCost(entity.getTotalCost())
-                .costByServiceType(costByServiceType)
-                .details(responseDetails)
-                .build();
-    }
+        public ServiceReportResponse toResponseDto(CostReport entity) {
+                if (entity.getStatus() != ReportStatus.COMPLETED) {
+                        return ServiceReportResponse.builder()
+                                        .id(entity.getId())
+                                        .generatedAt(entity.getGeneratedAt())
+                                        .status(entity.getStatus().name())
+                                        .startDate(entity.getStartDate())
+                                        .endDate(entity.getEndDate())
+                                        .totalCost(entity.getTotalCost())
+                                        .details(new ArrayList<>())
+                                        .build();
+                }
 
-    public CostReportSummary toSummaryDto(CostReport entity) {
-        return new CostReportSummary(
-                entity.getId(),
-                entity.getGeneratedAt(),
-                entity.getStatus() != null ? entity.getStatus().name() : null,
-                entity.getStartDate(),
-                entity.getEndDate(),
-                entity.getTotalCost());
-    }
+                List<ServiceReportDetail> responseDetails = entity.getDetails().stream()
+                                .map(this::toDetailDtoFromEntity)
+                                .toList();
+
+                Map<String, BigDecimal> costByServiceType = responseDetails.stream()
+                                .collect(Collectors.toMap(
+                                                detail -> detail.getServiceName() + " (" + detail.getVendorName() + ")",
+                                                ServiceReportDetail::getCalculatedRangeCost,
+                                                BigDecimal::add));
+
+                return ServiceReportResponse.builder()
+                                .id(entity.getId())
+                                .generatedAt(entity.getGeneratedAt())
+                                .status(entity.getStatus().name())
+                                .startDate(entity.getStartDate())
+                                .endDate(entity.getEndDate())
+                                .totalCost(entity.getTotalCost())
+                                .costByServiceType(costByServiceType)
+                                .details(responseDetails)
+                                .build();
+        }
+
+        public CostReportSummary toSummaryDto(CostReport entity) {
+                return new CostReportSummary(
+                                entity.getId(),
+                                entity.getGeneratedAt(),
+                                entity.getStatus() != null ? entity.getStatus().name() : null,
+                                entity.getStartDate(),
+                                entity.getEndDate(),
+                                entity.getTotalCost());
+        }
 }

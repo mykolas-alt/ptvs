@@ -2,9 +2,8 @@ package lt.pskurimas.ptvs.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import lt.pskurimas.ptvs.dto.request.ServiceReportRequest;
-import lt.pskurimas.ptvs.dto.response.ServiceReportDetail;
 import lt.pskurimas.ptvs.converter.ReportConverter;
+import lt.pskurimas.ptvs.dto.request.ServiceReportRequest;
 import lt.pskurimas.ptvs.model.CostReport;
 import lt.pskurimas.ptvs.model.CostReportDetailEntity;
 import lt.pskurimas.ptvs.model.ReportStatus;
@@ -34,52 +33,49 @@ public class CostReportGenerator {
 
     @Transactional
     public void calculateAndSaveReport(UUID reportId, ServiceReportRequest request) {
+        CostReport reportEntity = costReportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("Report not found: " + reportId));
         try {
-            CostReport reportEntity = costReportRepository.findById(reportId)
-                    .orElseThrow(() -> new IllegalArgumentException("Report not found: " + reportId));
-
-            LocalDate start = request.getStartDate();
-            LocalDate end = request.getEndDate();
-
-            List<ThirdPartyService> services = thirdPartyServiceRepository.findActiveServicesInPeriod(start, end);
-
-            List<CostReportDetailEntity> detailEntities = new ArrayList<>();
-            BigDecimal totalCost = BigDecimal.ZERO;
-
-            for (ThirdPartyService service : services) {
-                LocalDate effectiveStart = service.getContractStartDate().isBefore(start) ? start
-                        : service.getContractStartDate();
-                LocalDate serviceEnd = service.getManualDeactivatedAt() != null && service
-                        .getManualDeactivatedAt().isBefore(service.getContractEndDate())
-                                ? service.getManualDeactivatedAt()
-                                : service.getContractEndDate();
-                LocalDate effectiveEnd = serviceEnd.isAfter(end) ? end : serviceEnd;
-
-                long activeDays = ChronoUnit.DAYS.between(effectiveStart, effectiveEnd) + 1;
-
-                BigDecimal dailyRate = service.getMonthlyCost().divide(BigDecimal.valueOf(30), 8, RoundingMode.HALF_UP);
-                BigDecimal rangeCost = dailyRate.multiply(BigDecimal.valueOf(activeDays)).setScale(2,
-                        RoundingMode.HALF_UP);
-
-                totalCost = totalCost.add(rangeCost);
-                ServiceReportDetail dto = mapper.toDetailDto(service, activeDays, rangeCost);
-                CostReportDetailEntity detailEntity = mapper.toDetailEntity(dto, reportEntity);
-                detailEntities.add(detailEntity);
-            }
-
-            reportEntity.setTotalCost(totalCost);
-            reportEntity.setStatus(ReportStatus.COMPLETED);
-            reportEntity.getDetails().clear();
-            reportEntity.getDetails().addAll(detailEntities);
-
-            costReportRepository.save(reportEntity);
-
+            calculateReport(reportEntity, request.getStartDate(), request.getEndDate());
         } catch (Exception e) {
             log.error("Report calculation failed for reportId: {}", reportId, e);
-            costReportRepository.findById(reportId).ifPresent(report -> {
-                report.setStatus(ReportStatus.FAILED);
-                costReportRepository.save(report);
-            });
+            reportEntity.setStatus(ReportStatus.FAILED);
+            costReportRepository.save(reportEntity);
         }
     }
+
+    private void calculateReport(CostReport report, LocalDate start, LocalDate end) {
+        List<ThirdPartyService> services = thirdPartyServiceRepository.findActiveServicesInPeriod(start, end);
+
+        List<CostReportDetailEntity> detailEntities = new ArrayList<>();
+        BigDecimal totalCost = BigDecimal.ZERO;
+
+        for (ThirdPartyService service : services) {
+            LocalDate effectiveStart = service.getContractStartDate().isBefore(start)
+                    ? start
+                    : service.getContractStartDate();
+
+            LocalDate serviceEnd = service.getManualDeactivatedAt() != null
+                    && service.getManualDeactivatedAt().isBefore(service.getContractEndDate())
+                            ? service.getManualDeactivatedAt()
+                            : service.getContractEndDate();
+
+            LocalDate effectiveEnd = serviceEnd.isAfter(end) ? end : serviceEnd;
+
+            long activeDays = ChronoUnit.DAYS.between(effectiveStart, effectiveEnd) + 1;
+            BigDecimal dailyRate = service.getMonthlyCost().divide(BigDecimal.valueOf(30), 8, RoundingMode.HALF_UP);
+            BigDecimal rangeCost = dailyRate.multiply(BigDecimal.valueOf(activeDays)).setScale(2, RoundingMode.HALF_UP);
+
+            totalCost = totalCost.add(rangeCost);
+            detailEntities.add(mapper.toDetailEntity(service, report, activeDays, rangeCost));
+        }
+
+        report.setTotalCost(totalCost);
+        report.setStatus(ReportStatus.COMPLETED);
+        report.getDetails().clear();
+        report.getDetails().addAll(detailEntities);
+
+        costReportRepository.save(report);
+    }
+
 }
