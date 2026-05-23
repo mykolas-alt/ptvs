@@ -31,6 +31,7 @@ type Service = {
   status: ServiceStatus
   vendorContact: VendorContact | null
   responsiblePersonnel: Employee[]
+  version: number
 }
 
 type EditForm = {
@@ -144,7 +145,7 @@ export function Dashboard() {
     }
   }
 
-  function buildEditPayload(form: EditForm, forceUpdate = false) {
+  function buildEditPayload(form: EditForm, svc: Service, forceUpdate = false) {
     return {
       serviceName: form.serviceName,
       monthlyCost: Number(form.monthlyCost),
@@ -152,7 +153,8 @@ export function Dashboard() {
       contractEndDate: form.contractEndDate,
       vendorContactId: form.vendorContactId,
       responsiblePersonnelIds: form.responsiblePersonnelIds,
-      ...(forceUpdate && { forceUpdate: true }),
+      version: svc.version,
+      forceUpdate,
     }
   }
 
@@ -162,7 +164,7 @@ export function Dashboard() {
     const res = await fetch(`${apiBaseUrl}/services/${selected.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(buildEditPayload(editForm, forceUpdate)),
+      body: JSON.stringify(buildEditPayload(editForm, selected, forceUpdate)),
     })
     if (res.status === 409) {
       setShowConflict(true)

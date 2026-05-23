@@ -14,6 +14,7 @@ type VendorContact = {
   phone: string
   address: string
   vendorName: string
+  version: number
 }
 
 type ContactForm = {
@@ -43,6 +44,7 @@ export function VendorContacts() {
   const [listLoading, setListLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingVersion, setEditingVersion] = useState<number | null>(null)
   const [form, setForm] = useState<ContactForm>(EMPTY)
   const [errors, setErrors] = useState<ContactErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -81,6 +83,7 @@ export function VendorContacts() {
 
   function openEdit(c: VendorContact) {
     setEditingId(c.id)
+    setEditingVersion(c.version)
     setForm({ vendorName: c.vendorName, name: c.name, email: c.email, phone: c.phone ?? '' })
     setErrors({})
     setSubmitError(null)
@@ -90,6 +93,7 @@ export function VendorContacts() {
   function closeForm() {
     setShowForm(false)
     setEditingId(null)
+    setEditingVersion(null)
     setForm(EMPTY)
     setErrors({})
   }
@@ -100,7 +104,7 @@ export function VendorContacts() {
     const res = await fetch(`${apiBaseUrl}/vendor-contacts/${editingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ...form, ...(forceUpdate && { forceUpdate: true }) }),
+      body: JSON.stringify({ ...form, version: editingVersion, forceUpdate }),
     })
     if (res.status === 409) { setShowConflict(true); return }
     if (!res.ok) throw new Error('Failed to update contact.')
@@ -148,6 +152,7 @@ export function VendorContacts() {
       if (!res.ok) throw new Error()
       const fresh = await res.json() as VendorContact
       setContacts(prev => prev.map(c => c.id === fresh.id ? fresh : c))
+      setEditingVersion(fresh.version)
       setForm({ vendorName: fresh.vendorName, name: fresh.name, email: fresh.email, phone: fresh.phone ?? '' })
       setShowConflict(false)
     } catch {

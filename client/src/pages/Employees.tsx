@@ -14,6 +14,7 @@ type Employee = {
   phone: string
   department: string
   jobTitle: string
+  version: number
 }
 
 type EmpForm = {
@@ -43,6 +44,7 @@ export function Employees() {
   const [listLoading, setListLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingVersion, setEditingVersion] = useState<number | null>(null)
   const [form, setForm] = useState<EmpForm>(EMPTY)
   const [errors, setErrors] = useState<EmpErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -81,6 +83,7 @@ export function Employees() {
 
   function openEdit(emp: Employee) {
     setEditingId(emp.id)
+    setEditingVersion(emp.version)
     setForm({ name: emp.name, email: emp.email, phone: emp.phone ?? '', department: emp.department, jobTitle: emp.jobTitle ?? '' })
     setErrors({})
     setSubmitError(null)
@@ -90,6 +93,7 @@ export function Employees() {
   function closeForm() {
     setShowForm(false)
     setEditingId(null)
+    setEditingVersion(null)
     setForm(EMPTY)
     setErrors({})
   }
@@ -100,7 +104,7 @@ export function Employees() {
     const res = await fetch(`${apiBaseUrl}/employees/${editingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ...form, ...(forceUpdate && { forceUpdate: true }) }),
+      body: JSON.stringify({ ...form, version: editingVersion, forceUpdate }),
     })
     if (res.status === 409) { setShowConflict(true); return }
     if (!res.ok) throw new Error('Failed to update employee.')
@@ -148,6 +152,7 @@ export function Employees() {
       if (!res.ok) throw new Error()
       const fresh = await res.json() as Employee
       setEmployees(prev => prev.map(e => e.id === fresh.id ? fresh : e))
+      setEditingVersion(fresh.version)
       setForm({ name: fresh.name, email: fresh.email, phone: fresh.phone ?? '', department: fresh.department, jobTitle: fresh.jobTitle ?? '' })
       setShowConflict(false)
     } catch {

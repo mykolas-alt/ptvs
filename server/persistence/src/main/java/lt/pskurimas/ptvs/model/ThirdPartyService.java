@@ -1,11 +1,5 @@
 package lt.pskurimas.ptvs.model;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,15 +10,22 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import org.hibernate.envers.Audited;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.envers.Audited;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "third_party_service")
@@ -34,7 +35,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ThirdPartyService {
+public class ThirdPartyService implements VersionedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -51,6 +52,9 @@ public class ThirdPartyService {
 
     @Column(name = "contract_end_date", nullable = false)
     private LocalDate contractEndDate;
+
+    @Column(name = "manual_deactivated_at")
+    private LocalDate manualDeactivatedAt;
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -70,4 +74,8 @@ public class ThirdPartyService {
 
     @Column(name = "created_by")
     private UUID createdBy;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 }

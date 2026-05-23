@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="008-persist-cost-reports" author="Emil">
+        
+        <createTable tableName="cost_reports">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true"
+                             primaryKeyName="pk_cost_reports"/>
+            </column>
+            <column name="start_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="end_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_cost" type="numeric(19,2)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+       
+        <createTable tableName="cost_report_details">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true"
+                             primaryKeyName="pk_cost_report_details"/>
+            </column>
+            <column name="cost_report_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="service_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="vendor_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="monthly_rate" type="numeric(19,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_range_cost" type="numeric(19,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="days_active_in_range" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        
+        <addForeignKeyConstraint
+                baseTableName="cost_report_details"
+                baseColumnNames="cost_report_id"
+                referencedTableName="cost_reports"
+                referencedColumnNames="id"
+                onDelete="CASCADE"
+                constraintName="fk_cost_report_details_report"/>
+    </changeSet>
+
+</databaseChangeLog>

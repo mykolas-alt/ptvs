@@ -1,10 +1,10 @@
 package lt.pskurimas.ptvs;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -12,9 +12,12 @@ import lt.pskurimas.ptvs.model.UserRole;
 import lt.pskurimas.ptvs.model.AppUser;
 import lt.pskurimas.ptvs.repository.AppUserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
+@Transactional
 public class AuthService {
 
     private final AppUserRepository appUserRepository;
@@ -23,6 +26,7 @@ public class AuthService {
 
     public Optional<String> register(String username, String password) {
         if (appUserRepository.existsByUsername(username)) {
+            log.info("Registration rejected for existing username=[{}]", username);
             return Optional.empty();
         }
 
@@ -34,17 +38,19 @@ public class AuthService {
 
         return Optional.of(user)
                 .map(appUserRepository::save)
-                .map(AppUser::getUsername)
+                .map(saved -> {
+                    log.info("Registered user id=[{}] username=[{}]", saved.getId(), saved.getUsername());
+                    return saved.getUsername();
+                })
                 .map(jwtService::generateToken);
     }
 
     public Optional<String> authenticate(String username, String password) {
         return appUserRepository.findByUsername(username)
                 .filter(user -> passwordEncoder.matches(password, user.getPasswordHash()))
-                .map(user -> jwtService.generateToken(user.getUsername()));
-    }
-
-    public AppUser getUserInfo(AppUser user) {
-        return user;
+                .map(user -> {
+                    log.info("Authenticated user id=[{}] username=[{}]", user.getId(), user.getUsername());
+                    return jwtService.generateToken(user.getUsername());
+                });
     }
 }

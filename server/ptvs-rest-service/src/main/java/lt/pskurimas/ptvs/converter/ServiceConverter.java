@@ -1,13 +1,14 @@
 package lt.pskurimas.ptvs.converter;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import lt.pskurimas.ptvs.dto.response.EmployeeResponse;
-import lt.pskurimas.ptvs.dto.response.ServiceResponse;
-import lt.pskurimas.ptvs.dto.response.VendorContactResponse;
+import lt.pskurimas.ptvs.dto.response.employee.EmployeeResponse;
+import lt.pskurimas.ptvs.dto.response.service.ServiceResponse;
+import lt.pskurimas.ptvs.dto.response.vendorcontact.VendorContactResponse;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lombok.RequiredArgsConstructor;
 
@@ -19,10 +20,9 @@ public class ServiceConverter {
     private final EmployeeConverter employeeConverter;
 
     public ServiceResponse toResponse(ThirdPartyService service) {
-        VendorContactResponse vendorContactResponse = null;
-        if (service.getVendorContact() != null) {
-            vendorContactResponse = vendorContactConverter.toResponse(service.getVendorContact());
-        }
+        VendorContactResponse vendorContactResponse = Optional.ofNullable(service.getVendorContact())
+                .map(vendorContactConverter::toResponse)
+                .orElse(null);
 
         Set<EmployeeResponse> employeeResponses = service.getResponsiblePersonnel().stream()
                 .map(employeeConverter::toResponse)
@@ -34,10 +34,12 @@ public class ServiceConverter {
                 .monthlyCost(service.getMonthlyCost())
                 .contractStartDate(service.getContractStartDate())
                 .contractEndDate(service.getContractEndDate())
+                .manualDeactivatedAt(service.getManualDeactivatedAt())
                 .status(service.getStatus())
                 .vendorContact(vendorContactResponse)
                 .responsiblePersonnel(employeeResponses)
                 .createdBy(service.getCreatedBy())
+                .version(service.getVersion())
                 .build();
     }
 }

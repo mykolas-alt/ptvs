@@ -12,4 +12,11 @@
     <include file="changesets/005-notification-user-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/006-notification-vendor-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/007-seed-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/008-persist-cost-reports.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/009-service-manual-deactivation.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/011-fix-service-responsible-personnel-aud.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/012-audit-log.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/013-audit-log-entry-payload.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/014-add-entity-version-columns.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/015-app-user-audit.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
