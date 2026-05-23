@@ -3,6 +3,8 @@ package lt.pskurimas.ptvs.controller;
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.annotation.CurrentUser;
 import lt.pskurimas.ptvs.annotation.RequireRole;
+import lt.pskurimas.ptvs.audit.AuditAction;
+import lt.pskurimas.ptvs.audit.Auditable;
 import lt.pskurimas.ptvs.dto.request.CreateEmployeeNotificationConfigRequest;
 import lt.pskurimas.ptvs.dto.request.UpdateEmployeeNotificationConfigRequest;
 import lt.pskurimas.ptvs.dto.response.EmployeeNotificationConfigResponse;
@@ -33,6 +35,7 @@ public class ServiceNotificationConfigController {
 
     @PostMapping("/{serviceId}/employee-config")
     @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.CREATE_EMPLOYEE_CONFIG, payloadType = CreateEmployeeNotificationConfigRequest.class)
     public ResponseEntity<EmployeeNotificationConfigResponse> createEmployeeConfig(
             @PathVariable UUID serviceId,
             @RequestBody CreateEmployeeNotificationConfigRequest request,
@@ -43,6 +46,7 @@ public class ServiceNotificationConfigController {
 
     @PutMapping("/{serviceId}/employee-config/{employeeConfigId}")
     @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.UPDATE_EMPLOYEE_CONFIG, payloadType = UpdateEmployeeNotificationConfigRequest.class)
     public ResponseEntity<EmployeeNotificationConfigResponse> updateEmployeeConfig(
             @PathVariable UUID serviceId,
             @PathVariable UUID employeeConfigId,
@@ -54,6 +58,7 @@ public class ServiceNotificationConfigController {
 
     @DeleteMapping("/{serviceId}/employee-config/{employeeConfigId}")
     @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.DELETE_EMPLOYEE_CONFIG)
     public ResponseEntity<Void> deleteEmployeeConfig(
             @PathVariable UUID serviceId,
             @PathVariable UUID employeeConfigId,

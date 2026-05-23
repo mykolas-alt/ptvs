@@ -19,7 +19,10 @@ public enum AuditAction {
     CREATE_VENDOR_CONTACT("Create vendor contact"),
     UPDATE_VENDOR_CONTACT("Update vendor contact"),
     GENERATE_COST_REPORT("Generate cost report"),
-    REFRESH_SERVICE_STATUSES("Refresh service statuses");
+    REFRESH_SERVICE_STATUSES("Refresh service statuses"),
+    CREATE_EMPLOYEE_CONFIG("Create employee config"),
+    UPDATE_EMPLOYEE_CONFIG("Update employee config"),
+    DELETE_EMPLOYEE_CONFIG("Delete employee config");
 
     private final String displayName;
 }
