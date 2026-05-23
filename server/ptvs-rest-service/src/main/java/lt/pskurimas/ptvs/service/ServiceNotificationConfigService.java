@@ -36,6 +36,7 @@ public class ServiceNotificationConfigService {
                 .map(config -> EmployeeNotificationConfigResponse.builder()
                         .id(config.getId())
                         .employeeId(config.getEmployee().getId())
+                        .serviceId(config.getServiceNotificationConfig().getService().getId())
                         .daysBeforeExpiry(config.getDaysBeforeExpiry())
                         .additionalEmails(config.getAdditionalEmails())
                         .build())
@@ -80,6 +81,7 @@ public class ServiceNotificationConfigService {
         return EmployeeNotificationConfigResponse.builder()
                 .id(saved.getId())
                 .employeeId(saved.getEmployee().getId())
+                .serviceId(saved.getServiceNotificationConfig().getService().getId())
                 .daysBeforeExpiry(saved.getDaysBeforeExpiry())
                 .additionalEmails(saved.getAdditionalEmails())
                 .build();
@@ -106,6 +108,7 @@ public class ServiceNotificationConfigService {
         return EmployeeNotificationConfigResponse.builder()
                 .id(saved.getId())
                 .employeeId(saved.getEmployee().getId())
+                .serviceId(saved.getServiceNotificationConfig().getService().getId())
                 .daysBeforeExpiry(saved.getDaysBeforeExpiry())
                 .additionalEmails(saved.getAdditionalEmails())
                 .build();
