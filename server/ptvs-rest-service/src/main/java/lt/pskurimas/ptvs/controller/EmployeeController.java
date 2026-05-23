@@ -3,6 +3,8 @@ package lt.pskurimas.ptvs.controller;
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.annotation.CurrentUser;
 import lt.pskurimas.ptvs.annotation.RequireRole;
+import lt.pskurimas.ptvs.audit.AuditAction;
+import lt.pskurimas.ptvs.audit.Auditable;
 import lt.pskurimas.ptvs.dto.request.CreateEmployeeRequest;
 import lt.pskurimas.ptvs.dto.response.EmployeeResponse;
 import lt.pskurimas.ptvs.dto.response.PagedResponse;
@@ -31,6 +33,7 @@ public class EmployeeController {
 
     @PostMapping
     @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.CREATE_EMPLOYEE, payloadType = CreateEmployeeRequest.class)
     public ResponseEntity<EmployeeResponse> createEmployee(@RequestBody CreateEmployeeRequest request,
                                                            @CurrentUser AppUser user) {
         var employee = employeeService.createEmployee(request);

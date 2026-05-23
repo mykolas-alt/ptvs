@@ -1,6 +1,7 @@
 package lt.pskurimas.ptvs.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.converter.VendorContactConverter;
 import lt.pskurimas.ptvs.dto.request.CreateVendorContactRequest;
 import lt.pskurimas.ptvs.dto.response.VendorContactResponse;
@@ -16,12 +17,14 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class VendorContactService {
 
     private final VendorContactRepository repository;
     private final VendorContactConverter vendorContactConverter;
 
     public VendorContactResponse createVendorContact(CreateVendorContactRequest request) {
+        log.info("Creating vendor contact for vendor=[{}]", request.getVendorName());
         VendorContact vendorContact = new VendorContact();
         vendorContact.setName(request.getName());
         vendorContact.setEmail(request.getEmail());
@@ -31,12 +34,14 @@ public class VendorContactService {
         vendorContact.setDepartment(request.getDepartment());
 
         VendorContact persistedVendorContact = repository.save(vendorContact);
+        log.info("Created vendor contact id=[{}]", persistedVendorContact.getId());
 
         return vendorContactConverter.toResponse(persistedVendorContact);
     }
 
     @Transactional(readOnly = true)
     public VendorContactResponse getVendorContactById(UUID id) {
+        log.info("Fetching vendor contact by id=[{}]", id);
         return repository.findById(id)
                 .map(vendorContactConverter::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("Vendor contact not found: " + id));
@@ -44,8 +49,8 @@ public class VendorContactService {
 
     @Transactional(readOnly = true)
     public Page<VendorContactResponse> getAllVendorContacts(Pageable pageable) {
+        log.info("Fetching vendor contacts page=[{}], size=[{}]", pageable.getPageNumber(), pageable.getPageSize());
         return repository.findAll(pageable)
                 .map(vendorContactConverter::toResponse);
     }
 }
-

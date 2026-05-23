@@ -1,6 +1,7 @@
 package lt.pskurimas.ptvs.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.converter.ServiceConverter;
 import lt.pskurimas.ptvs.dto.request.CreateServiceRequest;
 import lt.pskurimas.ptvs.dto.request.UpdateServiceRequest;
@@ -31,6 +32,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ThirdPartyServiceService {
 
     private final ThirdPartyServiceRepository repository;
@@ -41,6 +43,8 @@ public class ThirdPartyServiceService {
     private final ThirdPartyServiceValidatorFacade validatorFacade;
 
     public ServiceResponse createService(CreateServiceRequest request, AppUser executingUser) {
+        log.info("Creating third party service name=[{}] vendorContactId=[{}]", request.getServiceName(),
+                request.getVendorContactId());
         VendorContact vendorContact = vendorContactRepository.findById(request.getVendorContactId())
                 .orElseThrow(() -> new IllegalArgumentException("Vendor contact not found"));
 
@@ -64,11 +68,13 @@ public class ThirdPartyServiceService {
         validatorFacade.validate(service, new ServiceValidationContext(ServiceValidationOperation.CREATE, currentDate));
 
         ThirdPartyService persistedService = repository.save(service);
+        log.info("Created third party service id=[{}]", persistedService.getId());
 
         return serviceConverter.toResponse(persistedService);
     }
 
     public ServiceResponse updateService(UUID id, UpdateServiceRequest request) {
+        log.info("Updating third party service id=[{}]", id);
         ThirdPartyService service = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
 
@@ -97,12 +103,14 @@ public class ThirdPartyServiceService {
         validatorFacade.validate(service, new ServiceValidationContext(ServiceValidationOperation.UPDATE, currentDate));
 
         ThirdPartyService persistedRepository = repository.save(service);
+        log.info("Updated third party service id=[{}]", persistedRepository.getId());
 
         return serviceConverter.toResponse(persistedRepository);
     }
 
     @Transactional(readOnly = true)
     public ServiceResponse getServiceById(UUID id) {
+        log.info("Fetching third party service id=[{}]", id);
         return repository.findById(id)
                 .map(serviceConverter::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
@@ -110,17 +118,21 @@ public class ThirdPartyServiceService {
 
     @Transactional(readOnly = true)
     public Page<ServiceResponse> getAllServices(Pageable pageable) {
+        log.info("Fetching all services page=[{}], size=[{}]", pageable.getPageNumber(), pageable.getPageSize());
         return repository.findAll(pageable)
                 .map(serviceConverter::toResponse);
     }
 
     @Transactional(readOnly = true)
     public Page<ServiceResponse> getServicesByStatus(ServiceStatus status, Pageable pageable) {
+        log.info("Fetching services by status=[{}] page=[{}], size=[{}]", status, pageable.getPageNumber(),
+                pageable.getPageSize());
         return repository.findByStatus(status, pageable)
                 .map(serviceConverter::toResponse);
     }
 
     public void deleteService(UUID id) {
+        log.info("Deactivating third party service id=[{}]", id);
         ThirdPartyService service = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
 
@@ -131,6 +143,7 @@ public class ThirdPartyServiceService {
         service.setManualDeactivatedAt(dateProvider.getCurrentDate());
         service.setStatus(ServiceStatus.DEACTIVATED);
         repository.save(service);
+        log.info("Deactivated third party service id=[{}]", id);
     }
 
     private ServiceStatus resolveStatus(LocalDate today,

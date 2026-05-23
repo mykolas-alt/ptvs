@@ -1,4 +1,7 @@
 package lt.pskurimas.ptvs.dto.request;
 
-public record RegisterRequest(String username, String password) {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record RegisterRequest(String username,
+                              @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) String password) {
 }

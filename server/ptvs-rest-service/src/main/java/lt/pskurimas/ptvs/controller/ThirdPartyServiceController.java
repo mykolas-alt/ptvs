@@ -3,6 +3,8 @@ package lt.pskurimas.ptvs.controller;
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.annotation.CurrentUser;
 import lt.pskurimas.ptvs.annotation.RequireRole;
+import lt.pskurimas.ptvs.audit.AuditAction;
+import lt.pskurimas.ptvs.audit.Auditable;
 import lt.pskurimas.ptvs.dto.request.CreateServiceRequest;
 import lt.pskurimas.ptvs.dto.request.UpdateServiceRequest;
 import lt.pskurimas.ptvs.dto.response.PagedResponse;
@@ -57,6 +59,7 @@ public class ThirdPartyServiceController {
 
     @PostMapping
     @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.CREATE_SERVICE, payloadType = CreateServiceRequest.class)
     public ResponseEntity<ServiceResponse> createService(@RequestBody CreateServiceRequest request,
                                                          @CurrentUser AppUser user) {
         var service = serviceService.createService(request, user);
@@ -65,6 +68,7 @@ public class ThirdPartyServiceController {
 
     @PutMapping("/{id}")
     @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.UPDATE_SERVICE, payloadType = UpdateServiceRequest.class)
     public ResponseEntity<ServiceResponse> updateService(@PathVariable UUID id,
                                                          @RequestBody UpdateServiceRequest request,
                                                          @CurrentUser AppUser user) {
@@ -74,6 +78,7 @@ public class ThirdPartyServiceController {
 
     @DeleteMapping("/{id}")
     @RequireRole(UserRole.ADMIN)
+    @Auditable(action = AuditAction.DEACTIVATE_SERVICE)
     public ResponseEntity<Void> deleteService(@PathVariable UUID id,
                                               @CurrentUser AppUser user) {
         serviceService.deleteService(id);

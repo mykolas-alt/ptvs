@@ -1,5 +1,6 @@
 package lt.pskurimas.ptvs.resolver;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,8 +24,8 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
     }
 
     @Override
-    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-                                   NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+    public Object resolveArgument(@NonNull MethodParameter parameter, ModelAndViewContainer mavContainer,
+                                  @NonNull NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getPrincipal() == null) {
             if (isRequired(parameter)) {
@@ -35,7 +36,7 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 
         Object principal = authentication.getPrincipal();
         if (principal instanceof PtvsUserDetails) {
-            return ((PtvsUserDetails) principal).getUser();
+            return ((PtvsUserDetails) principal).user();
         }
 
         if (isRequired(parameter)) {
