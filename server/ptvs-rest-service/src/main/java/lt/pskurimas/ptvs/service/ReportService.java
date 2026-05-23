@@ -2,10 +2,10 @@ package lt.pskurimas.ptvs.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import lt.pskurimas.ptvs.dto.request.ServiceReportRequest;
-import lt.pskurimas.ptvs.dto.response.CostReportSummary;
-import lt.pskurimas.ptvs.dto.response.ServiceReportDetail;
-import lt.pskurimas.ptvs.dto.response.ServiceReportResponse;
+import lt.pskurimas.ptvs.dto.request.reports.ServiceReportRequest;
+import lt.pskurimas.ptvs.dto.response.reports.CostReportSummary;
+import lt.pskurimas.ptvs.dto.response.reports.ServiceReportDetail;
+import lt.pskurimas.ptvs.dto.response.reports.ServiceReportResponse;
 import lt.pskurimas.ptvs.model.CostReport;
 import lt.pskurimas.ptvs.model.CostReportDetailEntity;
 import lt.pskurimas.ptvs.model.ThirdPartyService;

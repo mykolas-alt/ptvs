@@ -2,6 +2,7 @@ package lt.pskurimas.ptvs.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Version;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,7 +11,11 @@ import lombok.Setter;
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
-public abstract class ContactPerson extends BaseEntity {
+public abstract class ContactPerson extends BaseEntity implements VersionedEntity {
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @Column(nullable = false, name = "name")
     private String name;

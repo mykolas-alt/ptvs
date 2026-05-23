@@ -1,4 +1,4 @@
-package lt.pskurimas.ptvs.dto.response;
+package lt.pskurimas.ptvs.dto.response.vendorcontact;
 
 import java.util.UUID;
 
@@ -21,4 +21,5 @@ public class VendorContactResponse {
     private String address;
     private String vendorName;
     private String department;
+    private Long version;
 }

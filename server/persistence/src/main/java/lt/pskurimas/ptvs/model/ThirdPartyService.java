@@ -13,6 +13,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,7 +35,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ThirdPartyService {
+public class ThirdPartyService implements VersionedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -73,4 +74,8 @@ public class ThirdPartyService {
 
     @Column(name = "created_by")
     private UUID createdBy;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 }

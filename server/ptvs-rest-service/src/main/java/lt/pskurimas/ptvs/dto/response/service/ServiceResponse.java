@@ -1,10 +1,12 @@
-package lt.pskurimas.ptvs.dto.response;
+package lt.pskurimas.ptvs.dto.response.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
+import lt.pskurimas.ptvs.dto.response.vendorcontact.VendorContactResponse;
+import lt.pskurimas.ptvs.dto.response.employee.EmployeeResponse;
 import lt.pskurimas.ptvs.model.ServiceStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,4 +30,5 @@ public class ServiceResponse {
     private VendorContactResponse vendorContact;
     private Set<EmployeeResponse> responsiblePersonnel;
     private UUID createdBy;
+    private Long version;
 }

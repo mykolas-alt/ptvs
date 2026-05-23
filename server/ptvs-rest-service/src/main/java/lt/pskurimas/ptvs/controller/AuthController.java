@@ -5,10 +5,10 @@ import lt.pskurimas.ptvs.AuthService;
 import lt.pskurimas.ptvs.annotation.CurrentUser;
 import lt.pskurimas.ptvs.audit.AuditAction;
 import lt.pskurimas.ptvs.audit.Auditable;
-import lt.pskurimas.ptvs.dto.request.LoginRequest;
-import lt.pskurimas.ptvs.dto.request.RegisterRequest;
-import lt.pskurimas.ptvs.dto.response.LoginResponse;
-import lt.pskurimas.ptvs.dto.response.UserInfoResponse;
+import lt.pskurimas.ptvs.dto.request.auth.LoginRequest;
+import lt.pskurimas.ptvs.dto.request.auth.RegisterRequest;
+import lt.pskurimas.ptvs.dto.response.auth.LoginResponse;
+import lt.pskurimas.ptvs.dto.response.auth.UserInfoResponse;
 import lt.pskurimas.ptvs.model.AppUser;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,6 +46,6 @@ public class AuthController {
                 .map(Enum::name)
                 .sorted()
                 .toList();
-        return ResponseEntity.ok(new UserInfoResponse(user.getUsername(), roles));
+        return ResponseEntity.ok(new UserInfoResponse(user.getUsername(), roles, user.getVersion()));
     }
 }

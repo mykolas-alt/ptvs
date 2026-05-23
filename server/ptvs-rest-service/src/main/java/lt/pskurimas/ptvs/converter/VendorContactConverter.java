@@ -2,7 +2,7 @@ package lt.pskurimas.ptvs.converter;
 
 import org.springframework.stereotype.Component;
 
-import lt.pskurimas.ptvs.dto.response.VendorContactResponse;
+import lt.pskurimas.ptvs.dto.response.vendorcontact.VendorContactResponse;
 import lt.pskurimas.ptvs.model.VendorContact;
 
 @Component
@@ -17,6 +17,7 @@ public class VendorContactConverter {
                 .address(vendorContact.getAddress())
                 .vendorName(vendorContact.getVendorName())
                 .department(vendorContact.getDepartment())
+                .version(vendorContact.getVersion())
                 .build();
     }
 }

@@ -1,4 +1,4 @@
-package lt.pskurimas.ptvs.dto.response;
+package lt.pskurimas.ptvs.dto.response.reports;
 
 import java.math.BigDecimal;
 import lombok.Builder;

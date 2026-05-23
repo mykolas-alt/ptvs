@@ -1,4 +1,4 @@
-package lt.pskurimas.ptvs.dto.request;
+package lt.pskurimas.ptvs.dto.request.auth;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

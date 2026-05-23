@@ -1,4 +1,4 @@
-package lt.pskurimas.ptvs.dto.request;
+package lt.pskurimas.ptvs.dto.request.employee;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,11 +9,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateVendorContactRequest {
+public class CreateEmployeeRequest {
     private String name;
     private String email;
     private String phone;
     private String address;
-    private String vendorName;
     private String department;
+    private String jobTitle;
 }
