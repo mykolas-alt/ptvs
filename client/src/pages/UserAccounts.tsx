@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
+import { OptimisticLockConflictModal } from '../components/OptimisticLockConflictModal'
 import '../styles/ManagePage.css'
 import '../styles/UserAccounts.css'
 
@@ -10,6 +11,7 @@ type UserAccount = {
   id: string
   username: string
   roles: string[]
+  version: number
 }
 
 export function UserAccounts() {
@@ -18,6 +20,10 @@ export function UserAccounts() {
   const [listLoading, setListLoading] = useState(true)
   const [listError, setListError] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [showConflict, setShowConflict] = useState(false)
+  const [conflictLoading, setConflictLoading] = useState(false)
+  const [pendingUser, setPendingUser] = useState<UserAccount | null>(null)
+  const [pendingRoles, setPendingRoles] = useState<string[]>([])
 
   function getToken() { return localStorage.getItem(tokenStorageKey) }
 
@@ -39,6 +45,24 @@ export function UserAccounts() {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
   }
 
+  async function submitRoleUpdate(user: UserAccount, roles: string[], forceUpdate = false) {
+    const res = await fetch(`${apiBaseUrl}/admin/users/${user.id}/roles`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ roles, version: user.version, forceUpdate }),
+    })
+    if (res.status === 409) {
+      setPendingUser(user)
+      setPendingRoles(roles)
+      setShowConflict(true)
+      return
+    }
+    if (!res.ok) throw new Error()
+    const updated = await res.json() as UserAccount
+    setUsers(prev => prev.map(u => u.id === updated.id ? updated : u))
+    setShowConflict(false)
+  }
+
   async function toggleAdminRole(user: UserAccount) {
     const isAdmin = user.roles.includes('ADMIN')
     const newRoles = isAdmin
@@ -47,14 +71,7 @@ export function UserAccounts() {
 
     setTogglingId(user.id)
     try {
-      const res = await fetch(`${apiBaseUrl}/admin/users/${user.id}/roles`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ roles: newRoles }),
-      })
-      if (!res.ok) throw new Error()
-      const updated = await res.json() as UserAccount
-      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u))
+      await submitRoleUpdate(user, newRoles)
     } catch {
       alert('Failed to update user roles.')
     } finally {
@@ -62,9 +79,51 @@ export function UserAccounts() {
     }
   }
 
+  async function handleConflictReload() {
+    if (!pendingUser) return
+    setConflictLoading(true)
+    try {
+      const res = await fetch(`${apiBaseUrl}/admin/users`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json() as UserAccount[] | { content: UserAccount[] }
+      const list = Array.isArray(data) ? data : data.content
+      setUsers(Array.isArray(list) ? list : [])
+      setShowConflict(false)
+    } catch {
+      alert('Failed to reload user data.')
+      setShowConflict(false)
+    } finally {
+      setConflictLoading(false)
+    }
+  }
+
+  async function handleConflictForce() {
+    if (!pendingUser) return
+    setConflictLoading(true)
+    try {
+      await submitRoleUpdate(pendingUser, pendingRoles, true)
+    } catch {
+      alert('Force update failed.')
+      setShowConflict(false)
+    } finally {
+      setConflictLoading(false)
+    }
+  }
+
   return (
     <div className="page-container">
       <Navbar userInfo={userInfo} onLogout={logout} />
+      {showConflict && (
+        <OptimisticLockConflictModal
+          entityLabel="user account"
+          onReload={handleConflictReload}
+          onForce={handleConflictForce}
+          onClose={() => setShowConflict(false)}
+          isLoading={conflictLoading}
+        />
+      )}
       <main className="manage-main">
         <div className="manage-toolbar">
           <h1>User Accounts</h1>
