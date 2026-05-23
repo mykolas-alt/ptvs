@@ -6,10 +6,10 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="011-fix-service-responsible-personnel-aud" author="mykolas">
-        <comment>Align audit join table with Envers collection audit schema.</comment>
         <preConditions onFail="MARK_RAN">
             <columnExists tableName="service_responsible_personnel_aud" columnName="id"/>
         </preConditions>
+        <comment>Align audit join table with Envers collection audit schema.</comment>
         <dropPrimaryKey tableName="service_responsible_personnel_aud"/>
         <dropColumn tableName="service_responsible_personnel_aud" columnName="id"/>
         <addPrimaryKey
