@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="009-recreate-service-notification-config" author="Ignas">
+    <changeSet id="016-update-service-notification-config" author="Ignas">
         <dropTable tableName="service_notification_config" cascadeConstraints="true"/>
 
         <createTable tableName="service_notification_config">

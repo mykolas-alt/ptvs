@@ -19,8 +19,9 @@
     <include file="changesets/013-audit-log-entry-payload.xml" relativeToChangelogFile="true"/>
     <include file="changesets/014-add-entity-version-columns.xml" relativeToChangelogFile="true"/>
     <include file="changesets/015-app-user-audit.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/008-update-employee-notification-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/009-update-service-notification-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/010-update-employee-notification-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/011-update-seed-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/016-update-service-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/017-update-employee-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/018-update-seed-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/019-drop-notification-vendor-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/020-drop-notification-user-config.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="015-drop-notification-vendor-config" author="Ignas">
+    <changeSet id="019-drop-notification-vendor-config" author="Ignas">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="notification_vendor_config"/>
         </preConditions>
