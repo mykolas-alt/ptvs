@@ -19,4 +19,5 @@
     <include file="changesets/013-audit-log-entry-payload.xml" relativeToChangelogFile="true"/>
     <include file="changesets/014-add-entity-version-columns.xml" relativeToChangelogFile="true"/>
     <include file="changesets/015-app-user-audit.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/016-async-cost-reports.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

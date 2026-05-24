@@ -43,7 +43,7 @@ public class ReportController {
     @GetMapping("cost-report")
     @RequireRole(UserRole.ADMIN)
     public PagedResponse<CostReportSummary> getAllReports(@CurrentUser AppUser user,
-                                                          @PageableDefault Pageable pageable) {
+            @PageableDefault Pageable pageable) {
         return PagedResponse.of(reportService.getAllSavedReports(pageable));
     }
 
