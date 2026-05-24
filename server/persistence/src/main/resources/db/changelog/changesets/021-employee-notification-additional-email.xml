@@ -26,4 +26,12 @@
         <dropColumn tableName="employee_notification_config" columnName="additional_emails"/>
     </changeSet>
 
+    <changeSet id="021-add-notification-enable-option" author="Ignas">
+        <addColumn tableName="employee_notification_config">
+            <column name="notifications_enabled" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

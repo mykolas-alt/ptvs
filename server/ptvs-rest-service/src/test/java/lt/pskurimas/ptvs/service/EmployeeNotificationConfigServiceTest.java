@@ -61,6 +61,7 @@ class EmployeeNotificationConfigServiceTest {
                 .serviceNotificationConfig(serviceNotificationConfig)
                 .daysBeforeExpiry(30)
                 .additionalEmails(new ArrayList<>(List.of(email1, email2)))
+                .notificationsEnabled(true)
                 .build();
     }
 

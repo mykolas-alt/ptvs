@@ -38,6 +38,7 @@ public class EmployeeNotificationConfigService {
                 .employeeEmail(config.getEmployee().getEmail())
                 .additionalEmails(additionalEmails)
                 .daysBeforeExpiry(config.getDaysBeforeExpiry())
+            .notificationsEnabled(config.isNotificationsEnabled())
                 .build();
     }
 }

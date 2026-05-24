@@ -14,4 +14,5 @@ import java.util.List;
 public class UpdateEmployeeNotificationConfigRequest {
     private Integer daysBeforeExpiry;
     private List<String> additionalEmails;
+    private Boolean notificationsEnabled;
 }

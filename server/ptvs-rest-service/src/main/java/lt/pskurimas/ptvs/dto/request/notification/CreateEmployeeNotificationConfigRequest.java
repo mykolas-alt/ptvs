@@ -16,4 +16,5 @@ public class CreateEmployeeNotificationConfigRequest {
     private UUID employeeId;
     private Integer daysBeforeExpiry;
     private List<String> additionalEmails;
+    private Boolean notificationsEnabled;
 }

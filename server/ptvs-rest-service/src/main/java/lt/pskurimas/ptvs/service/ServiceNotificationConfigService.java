@@ -67,7 +67,11 @@ public class ServiceNotificationConfigService {
                 .employee(employee)
                 .serviceNotificationConfig(serviceConfig)
                 .daysBeforeExpiry(request.getDaysBeforeExpiry())
-                .build();
+            .build();
+
+        config.setNotificationsEnabled(request.getNotificationsEnabled() != null
+            ? request.getNotificationsEnabled()
+            : true);
 
         syncAdditionalEmails(config, request.getAdditionalEmails());
 
@@ -90,6 +94,10 @@ public class ServiceNotificationConfigService {
         validateAdditionalEmails(request.getAdditionalEmails());
 
         existing.setDaysBeforeExpiry(request.getDaysBeforeExpiry());
+
+        if (request.getNotificationsEnabled() != null) {
+            existing.setNotificationsEnabled(request.getNotificationsEnabled());
+        }
 
         syncAdditionalEmails(existing, request.getAdditionalEmails());
 
@@ -127,19 +135,20 @@ public class ServiceNotificationConfigService {
                 .additionalEmails(config.getAdditionalEmails().stream()
                         .map(EmployeeNotificationAdditionalEmail::getEmail)
                         .toList())
+            .notificationsEnabled(config.isNotificationsEnabled())
                 .build();
     }
 
     private void syncAdditionalEmails(EmployeeNotificationConfig config, List<String> emails) {
         config.getAdditionalEmails().clear();
-        if (emails != null) {
-            emails.forEach(email ->
-                    config.getAdditionalEmails().add(
-                            EmployeeNotificationAdditionalEmail.builder()
+        if (emails != null && !emails.isEmpty()) {
+            config.getAdditionalEmails().addAll(
+                    emails.stream()
+                            .map(email -> EmployeeNotificationAdditionalEmail.builder()
                                     .email(email)
                                     .employeeNotificationConfig(config)
-                                    .build()
-                    )
+                                    .build())
+                            .toList()
             );
         }
     }

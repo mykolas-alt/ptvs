@@ -63,6 +63,7 @@ class ServiceNotificationConfigServiceTest {
                 .additionalEmails(new ArrayList<>(List.of(
                         EmployeeNotificationAdditionalEmail.builder().email("boss@imone.lt").build()
                 )))
+            .notificationsEnabled(true)
                 .build();
 
         serviceNotificationConfig.setEmployeeConfigs(new ArrayList<>(List.of(employeeNotificationConfig)));
