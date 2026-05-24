@@ -8,6 +8,7 @@ import lt.pskurimas.ptvs.model.ServiceStatus;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.EmployeeNotificationConfigRepository;
 import lt.pskurimas.ptvs.service.EmailDispatchService;
+import lt.pskurimas.ptvs.util.DateProvider;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,7 @@ public class NotificationScheduler {
 
     private final EmployeeNotificationConfigRepository employeeConfigRepo;
     private final EmailDispatchService emailDispatchService;
+    private final DateProvider dateProvider;
 
     @Scheduled(cron = "0 0 8 * * *")
     public void sendExpirationNotifications() {
@@ -37,7 +39,7 @@ public class NotificationScheduler {
             return;
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = dateProvider.getCurrentDate();
 
         for (EmployeeNotificationConfig config : configs) {
 
