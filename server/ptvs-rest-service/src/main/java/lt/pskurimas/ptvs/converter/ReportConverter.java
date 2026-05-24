@@ -11,6 +11,7 @@ import lt.pskurimas.ptvs.model.ThirdPartyService;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,12 +20,13 @@ import java.util.stream.Collectors;
 @Component
 public class ReportConverter {
 
-        public CostReport toInitialEntity(ServiceReportRequest request) {
+        public CostReport toInitialEntity(ServiceReportRequest request, LocalDateTime generatedAt) {
                 return CostReport.builder()
                                 .startDate(request.getStartDate())
                                 .endDate(request.getEndDate())
                                 .totalCost(BigDecimal.ZERO)
                                 .status(ReportStatus.PROCESSING)
+                                .generatedAt(generatedAt)
                                 .details(new ArrayList<>())
                                 .build();
         }

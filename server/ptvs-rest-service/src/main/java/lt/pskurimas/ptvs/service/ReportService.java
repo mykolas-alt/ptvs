@@ -14,7 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import lt.pskurimas.ptvs.util.DateProvider;
 import java.util.UUID;
 
 @Slf4j
@@ -25,12 +25,13 @@ public class ReportService {
         private final CostReportRepository costReportRepository;
         private final ReportConverter mapper;
         private final ApplicationEventPublisher eventPublisher;
+        private final DateProvider dateProvider;
 
         @Transactional
         public ServiceReportResponse generateCostReport(ServiceReportRequest request) {
                 log.info("Generating cost report for startDate=[{}] endDate=[{}]", request.getStartDate(),
                                 request.getEndDate());
-                CostReport initialReport = mapper.toInitialEntity(request);
+                CostReport initialReport = mapper.toInitialEntity(request, dateProvider.getCurrentDateTime());
                 CostReport savedReport = costReportRepository.save(initialReport);
 
                 eventPublisher.publishEvent(new CostReportCreatedEvent(savedReport.getId(), request));

@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import lombok.Builder;
-import lombok.Getter;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonPropertyOrder({ "id", "generatedAt", "status", "startDate", "endDate", "totalCost", "costByServiceType",
