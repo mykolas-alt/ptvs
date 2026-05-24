@@ -9,7 +9,7 @@
     <include file="changesets/002-seed-admin-user.xml" relativeToChangelogFile="true"/>
     <include file="changesets/003-third-party-service-schema.xml" relativeToChangelogFile="true"/>
     <include file="changesets/004-entity-revisions-table.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/005-notification-user-config.xml.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/005-notification-user-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/006-notification-vendor-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/007-seed-notification-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/008-persist-cost-reports.xml" relativeToChangelogFile="true"/>
