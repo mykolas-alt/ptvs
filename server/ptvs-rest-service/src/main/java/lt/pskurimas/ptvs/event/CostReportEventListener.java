@@ -22,7 +22,7 @@ public class CostReportEventListener {
         try {
             costReportGenerator.calculateAndSaveReport(event.reportId(), event.request());
         } catch (Exception e) {
-            log.error("Unhandled exception for reportId: {}", event.reportId(), e);
+            log.error("Error while generating report for reportId: {}", event.reportId(), e);
         }
     }
 }
