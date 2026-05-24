@@ -2,6 +2,7 @@ package lt.pskurimas.ptvs.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.model.NotificationUserConfig;
 import lt.pskurimas.ptvs.model.NotificationVendorConfig;
 import lt.pskurimas.ptvs.repository.NotificationUserConfigRepository;
@@ -12,6 +13,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationUserConfigService {
 
     private final NotificationUserConfigRepository userConfigRepo;
@@ -19,6 +21,7 @@ public class NotificationUserConfigService {
 
     /** Checks if the user should be notified about the given vendor. */
     public boolean shouldNotify(UUID userId, UUID vendorId) {
+        log.debug("Resolving notification decision for userId=[{}] vendorId=[{}]", userId, vendorId);
         NotificationUserConfig global = userConfigRepo.findByUserId(userId).orElse(null);
 
         // If there are no global configurations, OR notifications are off
@@ -40,6 +43,7 @@ public class NotificationUserConfigService {
     }
 
     public Integer resolveDaysBeforeExpiry(UUID userId, UUID vendorId) {
+        log.debug("Resolving daysBeforeExpiry for userId=[{}] vendorId=[{}]", userId, vendorId);
         // Check if there is a vendor-specific configuration
         NotificationVendorConfig vendorConfig = vendorConfigRepo
                 .findByUserIdAndVendorId(userId, vendorId)
@@ -60,6 +64,7 @@ public class NotificationUserConfigService {
     }
 
     public String resolveAdditionalEmails(UUID userId, UUID vendorId) {
+        log.debug("Resolving additional emails for userId=[{}] vendorId=[{}]", userId, vendorId);
         // Check if there is a vendor-specific configuration
         NotificationVendorConfig vendorConfig = vendorConfigRepo
                 .findByUserIdAndVendorId(userId, vendorId)
@@ -81,17 +86,21 @@ public class NotificationUserConfigService {
     }
 
     public Optional<NotificationUserConfig> getUserConfig(UUID userId) {
+        log.debug("Fetching notification user config for userId=[{}]", userId);
         return userConfigRepo.findByUserId(userId);
     }
 
     @Transactional
     public NotificationUserConfig saveUserConfig(NotificationUserConfig config) {
+        log.info("Saving notification user config for userId=[{}]",
+                config.getUser() != null ? config.getUser().getId() : null);
         validateDaysBeforeExpiry(config.getDaysBeforeExpiry());
         return userConfigRepo.save(config);
     }
 
     @Transactional
     public NotificationUserConfig updateUserConfig(UUID userId, NotificationUserConfig updated) {
+        log.info("Updating notification user config for userId=[{}]", userId);
         NotificationUserConfig existing = findUserConfigOrThrow(userId);
         validateDaysBeforeExpiry(updated.getDaysBeforeExpiry());
 

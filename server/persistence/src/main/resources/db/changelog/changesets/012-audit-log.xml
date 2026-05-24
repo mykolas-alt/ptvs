@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="012-create-audit-log-entry" author="mykolas">
+        <createTable tableName="audit_log_entry">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_audit_log_entry"/>
+            </column>
+            <column name="class_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="method_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_name" type="VARCHAR(255)"/>
+            <column name="user_id" type="UUID"/>
+            <column name="username" type="VARCHAR(100)"/>
+            <column name="roles" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

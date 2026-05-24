@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.hibernate.annotations.CreationTimestamp;
-
 @Entity
 @Table(name = "cost_reports")
 @Getter
@@ -25,7 +23,6 @@ public class CostReport {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @CreationTimestamp
     @Column(name = "generated_at", nullable = false, updatable = false)
     private LocalDateTime generatedAt;
 

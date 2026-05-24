@@ -1,4 +1,7 @@
-package lt.pskurimas.ptvs.dto.response;
+package lt.pskurimas.ptvs.dto.response.reports;
+
+import lombok.Builder;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -6,16 +9,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-
 import lombok.Builder;
 import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-@Getter
-@Builder
 @JsonPropertyOrder({ "id", "generatedAt", "status", "startDate", "endDate", "totalCost", "costByServiceType",
         "details" })
+@Getter
+@Builder
 public class ServiceReportResponse {
     private UUID id;
     private LocalDateTime generatedAt;

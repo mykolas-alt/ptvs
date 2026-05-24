@@ -2,6 +2,7 @@ package lt.pskurimas.ptvs.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.model.NotificationVendorConfig;
 import lt.pskurimas.ptvs.repository.NotificationVendorConfigRepository;
 import org.springframework.stereotype.Service;
@@ -10,22 +11,27 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationVendorConfigService {
 
     private final NotificationVendorConfigRepository vendorConfigRepo;
 
     public List<NotificationVendorConfig> getVendorConfigs(UUID userId) {
+        log.debug("Fetching vendor configs for userId=[{}]", userId);
         return vendorConfigRepo.findByUserId(userId);
     }
 
     @Transactional
     public NotificationVendorConfig saveVendorConfig(NotificationVendorConfig config) {
+        log.info("Saving vendor config for userId=[{}] vendorId=[{}]",
+                config.getUser() != null ? config.getUser().getId() : null, config.getVendorId());
         validateDaysBeforeExpiry(config.getDaysBeforeExpiry());
         return vendorConfigRepo.save(config);
     }
 
     @Transactional
     public NotificationVendorConfig updateVendorConfig(UUID userId, UUID vendorId, NotificationVendorConfig updated) {
+        log.info("Updating vendor config for userId=[{}] vendorId=[{}]", userId, vendorId);
         NotificationVendorConfig existing = findVendorConfigOrThrow(userId, vendorId);
         validateDaysBeforeExpiry(updated.getDaysBeforeExpiry());
 
@@ -38,6 +44,7 @@ public class NotificationVendorConfigService {
 
     @Transactional
     public void deleteVendorConfig(UUID userId, UUID vendorId) {
+        log.info("Deleting vendor config for userId=[{}] vendorId=[{}]", userId, vendorId);
         vendorConfigRepo.deleteByUserIdAndVendorId(userId, vendorId);
     }
 

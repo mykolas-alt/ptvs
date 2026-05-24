@@ -22,4 +22,13 @@ auth:
   allowed-origins:
     - ${AUTH_ALLOWED_ORIGIN:http://localhost:5173}
 ptvs:
+  admin-id: 11111111-1111-1111-1111-111111111111
   status-refresh-interval-ms: ${STATUS_REFRESH_INTERVAL_MS:3600000}
+  audit:
+    enabled: ${PTVS_AUDIT_ENABLED:true}
+
+  logging:
+    request:
+      enabled: true
+      exclude-paths:
+        - /api/auth/me

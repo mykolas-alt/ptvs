@@ -1,4 +1,4 @@
-package lt.pskurimas.ptvs.dto.request;
+package lt.pskurimas.ptvs.dto.request.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,7 +14,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateServiceRequest {
+public class CreateServiceRequest {
     private String serviceName;
     private BigDecimal monthlyCost;
     private LocalDate contractStartDate;

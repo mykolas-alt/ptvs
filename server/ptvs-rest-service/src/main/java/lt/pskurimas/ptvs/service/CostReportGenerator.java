@@ -3,7 +3,7 @@ package lt.pskurimas.ptvs.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.converter.ReportConverter;
-import lt.pskurimas.ptvs.dto.request.ServiceReportRequest;
+import lt.pskurimas.ptvs.dto.request.reports.ServiceReportRequest;
 import lt.pskurimas.ptvs.model.CostReport;
 import lt.pskurimas.ptvs.model.CostReportDetailEntity;
 import lt.pskurimas.ptvs.model.ReportStatus;
