@@ -30,6 +30,7 @@ public class CostReportGenerator {
     private final ThirdPartyServiceRepository thirdPartyServiceRepository;
     private final CostReportRepository costReportRepository;
     private final ReportConverter mapper;
+    private final ReportStatusUpdater reportStatusUpdater;
 
     @Transactional
     public void calculateAndSaveReport(UUID reportId, ServiceReportRequest request) {
@@ -40,8 +41,7 @@ public class CostReportGenerator {
             log.info("Report completed for reportId: {}", reportId);
         } catch (Exception e) {
             log.error("Report calculation failed for reportId: {}", reportId, e);
-            reportEntity.setStatus(ReportStatus.FAILED);
-            costReportRepository.save(reportEntity);
+            reportStatusUpdater.markAsFailed(reportId);
         }
     }
 
