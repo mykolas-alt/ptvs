@@ -1,6 +1,6 @@
 package lt.pskurimas.ptvs.service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.dto.request.notification.CreateEmployeeNotificationConfigRequest;
 import lt.pskurimas.ptvs.dto.request.notification.UpdateEmployeeNotificationConfigRequest;
@@ -28,7 +28,7 @@ public class ServiceNotificationConfigService {
     private final EmployeeRepository employeeRepo;
     private final EmployeeNotificationConfigRepository employeeConfigRepo;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<EmployeeNotificationConfigResponse> getEmployeeConfigs(UUID serviceId) {
         return findServiceConfigOrThrow(serviceId)
                 .getEmployeeConfigs()
