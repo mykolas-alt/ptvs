@@ -1,148 +1,176 @@
-import { useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import { useState, useEffect } from 'react'
+import type { FormEvent } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
 import '../styles/ServiceRegistration.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
-type FormData = {
+type VendorContact = { id: string; name: string; email: string; phone: string; vendorName: string }
+type Employee = { id: string; name: string; email: string; department: string }
+
+type ServiceForm = {
   name: string
-  vendor: string
   price: string
   startDate: string
   endDate: string
-  contactName: string
-  contactEmail: string
-  contactPhone: string
-  responsibleName: string
-  responsibleEmail: string
-  responsibleDepartment: string
 }
 
-type Errors = Partial<Record<keyof FormData, string>>
+type NewContact = { vendor: string; contactName: string; contactEmail: string; contactPhone: string }
+type NewEmployee = { empName: string; empEmail: string; empDepartment: string }
 
-type FieldProps = {
-  label: string
-  error?: string
-  children: ReactNode
-}
+type ServiceErrors = Partial<Record<keyof ServiceForm, string>>
 
-function Field({ label, error, children }: FieldProps) {
-  return (
-    <div className={`form-field${error ? ' has-error' : ''}`}>
-      <label>{label}</label>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </div>
-  )
-}
-
-const EMPTY: FormData = {
-  name: '',
-  vendor: '',
-  price: '',
-  startDate: '',
-  endDate: '',
-  contactName: '',
-  contactEmail: '',
-  contactPhone: '',
-  responsibleName: '',
-  responsibleEmail: '',
-  responsibleDepartment: '',
-}
-
-function validate(data: FormData): Errors {
-  const e: Errors = {}
-  if (!data.name.trim()) e.name = 'Service name is required.'
-  if (!data.vendor.trim()) e.vendor = 'Vendor is required.'
-  if (!data.price) {
-    e.price = 'Monthly cost is required.'
-  } else if (Number(data.price) <= 0) {
-    e.price = 'Monthly cost must be greater than 0.'
-  }
-  if (!data.startDate) e.startDate = 'Start date is required.'
-  if (!data.endDate) {
-    e.endDate = 'End date is required.'
-  } else if (data.startDate && data.endDate <= data.startDate) {
-    e.endDate = 'End date must be after start date.'
-  }
-  if (!data.contactName.trim()) e.contactName = 'Contact name is required.'
-  if (!data.contactEmail.trim()) {
-    e.contactEmail = 'Contact email is required.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contactEmail)) {
-    e.contactEmail = 'Contact email is invalid.'
-  }
-  if (!data.contactPhone.trim()) e.contactPhone = 'Contact phone is required.'
-  if (!data.responsibleName.trim()) e.responsibleName = 'Responsible person name is required.'
-  if (!data.responsibleEmail.trim()) {
-    e.responsibleEmail = 'Responsible person email is required.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.responsibleEmail)) {
-    e.responsibleEmail = 'Responsible person email is invalid.'
-  }
-  if (!data.responsibleDepartment.trim()) e.responsibleDepartment = 'Department is required.'
+function validateService(f: ServiceForm): ServiceErrors {
+  const e: ServiceErrors = {}
+  if (!f.name.trim()) e.name = 'Service name is required.'
+  if (!f.price) e.price = 'Monthly cost is required.'
+  else if (Number(f.price) <= 0) e.price = 'Monthly cost must be greater than 0.'
+  if (!f.startDate) e.startDate = 'Start date is required.'
+  if (!f.endDate) e.endDate = 'End date is required.'
+  else if (f.startDate && f.endDate <= f.startDate) e.endDate = 'End date must be after start date.'
   return e
 }
 
 export function ServiceRegistration() {
   const { userInfo, isLoading, logout } = useAuth()
-  const [form, setForm] = useState<FormData>(EMPTY)
-  const [errors, setErrors] = useState<Errors>({})
-  const [submitted, setSubmitted] = useState(false)
+
+  const [contacts, setContacts] = useState<VendorContact[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [dataLoading, setDataLoading] = useState(true)
+
+  const [form, setForm] = useState<ServiceForm>({ name: '', price: '', startDate: '', endDate: '' })
+  const [errors, setErrors] = useState<ServiceErrors>({})
+
+  // Contact selection
+  const [contactMode, setContactMode] = useState<'existing' | 'new'>('existing')
+  const [selectedContactId, setSelectedContactId] = useState('')
+  const [newContact, setNewContact] = useState<NewContact>({ vendor: '', contactName: '', contactEmail: '', contactPhone: '' })
+  const [contactError, setContactError] = useState<string | null>(null)
+
+  // Employee selection
+  const [employeeMode, setEmployeeMode] = useState<'existing' | 'new'>('existing')
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([])
+  const [newEmployee, setNewEmployee] = useState<NewEmployee>({ empName: '', empEmail: '', empDepartment: '' })
+  const [employeeError, setEmployeeError] = useState<string | null>(null)
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useState(false)
+  const [submittedName, setSubmittedName] = useState('')
 
-  if (isLoading) {
+  function getToken() { return localStorage.getItem(tokenStorageKey) }
+
+  useEffect(() => {
+    if (isLoading) return
+    const token = getToken()
+    const headers = { Authorization: `Bearer ${token}` }
+    Promise.all([
+      fetch(`${apiBaseUrl}/vendor-contacts?size=10000`, { headers }).then(r => r.ok ? r.json() as Promise<{ content: VendorContact[] }> : Promise.resolve({ content: [] as VendorContact[] })),
+      fetch(`${apiBaseUrl}/employees?size=10000`, { headers }).then(r => r.ok ? r.json() as Promise<{ content: Employee[] }> : Promise.resolve({ content: [] as Employee[] })),
+    ]).then(([c, e]) => {
+      setContacts(Array.isArray(c.content) ? c.content : [])
+      setEmployees(Array.isArray(e.content) ? e.content : [])
+      setDataLoading(false)
+    }).catch(() => setDataLoading(false))
+  }, [isLoading])
+
+  if (isLoading || dataLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
   }
 
-  function set(field: keyof FormData, value: string) {
+  function setField(field: keyof ServiceForm, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }))
   }
 
+  function toggleEmployee(id: string) {
+    setSelectedEmployeeIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const errs = validate(form)
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs)
-      return
+    const errs = validateService(form)
+    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+
+    let contactOk = true
+    let employeeOk = true
+
+    if (contactMode === 'existing' && !selectedContactId) {
+      setContactError('Please select a vendor contact or create a new one.')
+      contactOk = false
+    } else {
+      setContactError(null)
     }
+
+    if (contactMode === 'new') {
+      if (!newContact.vendor.trim() || !newContact.contactName.trim() || !newContact.contactEmail.trim() || !newContact.contactPhone.trim()) {
+        setContactError('All contact fields are required.')
+        contactOk = false
+      } else {
+        setContactError(null)
+      }
+    }
+
+    if (employeeMode === 'existing' && selectedEmployeeIds.length === 0) {
+      setEmployeeError('Please select at least one employee or create a new one.')
+      employeeOk = false
+    } else {
+      setEmployeeError(null)
+    }
+
+    if (employeeMode === 'new') {
+      if (!newEmployee.empName.trim() || !newEmployee.empEmail.trim() || !newEmployee.empDepartment.trim()) {
+        setEmployeeError('Name, email and department are required.')
+        employeeOk = false
+      } else {
+        setEmployeeError(null)
+      }
+    }
+
+    if (!contactOk || !employeeOk) return
 
     setIsSubmitting(true)
     setSubmitError(null)
 
-    const token = localStorage.getItem(tokenStorageKey)
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    }
+    const token = getToken()
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
 
     try {
-      const vcRes = await fetch(`${apiBaseUrl}/vendor-contacts`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          name: form.contactName,
-          email: form.contactEmail,
-          phone: form.contactPhone,
-          vendorName: form.vendor,
-        }),
-      })
-      if (!vcRes.ok) throw new Error('Failed to create vendor contact.')
-      const vc = await vcRes.json() as { id: string }
+      let vcId = selectedContactId
+      if (contactMode === 'new') {
+        const vcRes = await fetch(`${apiBaseUrl}/vendor-contacts`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: newContact.contactName,
+            email: newContact.contactEmail,
+            phone: newContact.contactPhone,
+            vendorName: newContact.vendor,
+          }),
+        })
+        if (!vcRes.ok) throw new Error('Failed to create vendor contact.')
+        const vc = await vcRes.json() as { id: string }
+        vcId = vc.id
+      }
 
-      const empRes = await fetch(`${apiBaseUrl}/employees`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          name: form.responsibleName,
-          email: form.responsibleEmail,
-          department: form.responsibleDepartment,
-        }),
-      })
-      if (!empRes.ok) throw new Error('Failed to create employee record.')
-      const emp = await empRes.json() as { id: string }
+      let empIds = selectedEmployeeIds
+      if (employeeMode === 'new') {
+        const empRes = await fetch(`${apiBaseUrl}/employees`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: newEmployee.empName,
+            email: newEmployee.empEmail,
+            department: newEmployee.empDepartment,
+          }),
+        })
+        if (!empRes.ok) throw new Error('Failed to create employee record.')
+        const emp = await empRes.json() as { id: string }
+        empIds = [emp.id]
+      }
 
       const svcRes = await fetch(`${apiBaseUrl}/services`, {
         method: 'POST',
@@ -152,18 +180,35 @@ export function ServiceRegistration() {
           monthlyCost: Number(form.price),
           contractStartDate: form.startDate,
           contractEndDate: form.endDate,
-          vendorContactId: vc.id,
-          responsiblePersonnelIds: [emp.id],
+          vendorContactId: vcId,
+          responsiblePersonnelIds: empIds,
         }),
       })
       if (!svcRes.ok) throw new Error('Failed to register service.')
 
+      setSubmittedName(form.name)
       setSubmitted(true)
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Registration failed.')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  function reset() {
+    setForm({ name: '', price: '', startDate: '', endDate: '' })
+    setErrors({})
+    setContactMode('existing')
+    setSelectedContactId('')
+    setNewContact({ vendor: '', contactName: '', contactEmail: '', contactPhone: '' })
+    setContactError(null)
+    setEmployeeMode('existing')
+    setSelectedEmployeeIds([])
+    setNewEmployee({ empName: '', empEmail: '', empDepartment: '' })
+    setEmployeeError(null)
+    setSubmitError(null)
+    setSubmitted(false)
+    setSubmittedName('')
   }
 
   return (
@@ -175,118 +220,125 @@ export function ServiceRegistration() {
         {submitted ? (
           <div className="success-card">
             <h2>Service Registered</h2>
-            <p>
-              <strong>{form.name}</strong> by {form.vendor} has been successfully registered.
-            </p>
-            <button
-              className="btn-primary"
-              onClick={() => { setForm(EMPTY); setErrors({}); setSubmitted(false); setSubmitError(null) }}
-            >
-              Register Another
-            </button>
+            <p><strong>{submittedName}</strong> has been successfully registered.</p>
+            <button className="btn-primary" onClick={reset}>Register Another</button>
           </div>
         ) : (
           <form className="service-form" onSubmit={handleSubmit} noValidate>
             <fieldset>
               <legend>Service Details</legend>
-              <Field label="Service Name" error={errors.name}>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={e => set('name', e.target.value)}
-                  placeholder="e.g. AWS Cloud"
-                />
-              </Field>
-              <Field label="Vendor" error={errors.vendor}>
-                <input
-                  type="text"
-                  value={form.vendor}
-                  onChange={e => set('vendor', e.target.value)}
-                  placeholder="e.g. Amazon Web Services"
-                />
-              </Field>
-              <Field label="Monthly Cost (€)" error={errors.price}>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={form.price}
-                  onChange={e => set('price', e.target.value)}
-                  placeholder="0.00"
-                />
-              </Field>
+              <div className={`form-field${errors.name ? ' has-error' : ''}`}>
+                <label>Service Name</label>
+                <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. AWS Cloud" />
+                {errors.name && <span className="field-error">{errors.name}</span>}
+              </div>
+              <div className={`form-field${errors.price ? ' has-error' : ''}`}>
+                <label>Monthly Cost (€)</label>
+                <input type="number" min="0.01" step="0.01" value={form.price} onChange={e => setField('price', e.target.value)} placeholder="0.00" />
+                {errors.price && <span className="field-error">{errors.price}</span>}
+              </div>
               <div className="field-row">
-                <Field label="Contract Start Date" error={errors.startDate}>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={e => set('startDate', e.target.value)}
-                  />
-                </Field>
-                <Field label="Contract End Date" error={errors.endDate}>
-                  <input
-                    type="date"
-                    value={form.endDate}
-                    onChange={e => set('endDate', e.target.value)}
-                  />
-                </Field>
+                <div className={`form-field${errors.startDate ? ' has-error' : ''}`}>
+                  <label>Contract Start Date</label>
+                  <input type="date" value={form.startDate} onChange={e => setField('startDate', e.target.value)} />
+                  {errors.startDate && <span className="field-error">{errors.startDate}</span>}
+                </div>
+                <div className={`form-field${errors.endDate ? ' has-error' : ''}`}>
+                  <label>Contract End Date</label>
+                  <input type="date" value={form.endDate} onChange={e => setField('endDate', e.target.value)} />
+                  {errors.endDate && <span className="field-error">{errors.endDate}</span>}
+                </div>
               </div>
             </fieldset>
 
             <fieldset>
-              <legend>Contact Information</legend>
-              <Field label="Contact Name" error={errors.contactName}>
-                <input
-                  type="text"
-                  value={form.contactName}
-                  onChange={e => set('contactName', e.target.value)}
-                  placeholder="e.g. Support Team"
-                />
-              </Field>
-              <Field label="Contact Email" error={errors.contactEmail}>
-                <input
-                  type="email"
-                  value={form.contactEmail}
-                  onChange={e => set('contactEmail', e.target.value)}
-                  placeholder="e.g. support@vendor.com"
-                />
-              </Field>
-              <Field label="Contact Phone" error={errors.contactPhone}>
-                <input
-                  type="text"
-                  value={form.contactPhone}
-                  onChange={e => set('contactPhone', e.target.value)}
-                  placeholder="e.g. +1-800-555-0100"
-                />
-              </Field>
+              <legend>Vendor Contact</legend>
+              <div className="mode-tabs">
+                <button type="button" className={`mode-tab${contactMode === 'existing' ? ' mode-tab-active' : ''}`} onClick={() => setContactMode('existing')}>
+                  Select Existing
+                </button>
+                <button type="button" className={`mode-tab${contactMode === 'new' ? ' mode-tab-active' : ''}`} onClick={() => setContactMode('new')}>
+                  Create New
+                </button>
+              </div>
+              {contactMode === 'existing' ? (
+                <div className="form-field">
+                  <label>Vendor Contact</label>
+                  <select value={selectedContactId} onChange={e => setSelectedContactId(e.target.value)}>
+                    <option value="">— select a contact —</option>
+                    {contacts.map(c => (
+                      <option key={c.id} value={c.id}>{c.name} — {c.vendorName}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <>
+                  <div className="form-field">
+                    <label>Vendor Name</label>
+                    <input type="text" value={newContact.vendor} onChange={e => setNewContact({ ...newContact, vendor: e.target.value })} placeholder="e.g. Amazon Web Services" />
+                  </div>
+                  <div className="form-field">
+                    <label>Contact Name</label>
+                    <input type="text" value={newContact.contactName} onChange={e => setNewContact({ ...newContact, contactName: e.target.value })} placeholder="e.g. Support Team" />
+                  </div>
+                  <div className="form-field">
+                    <label>Contact Email</label>
+                    <input type="email" value={newContact.contactEmail} onChange={e => setNewContact({ ...newContact, contactEmail: e.target.value })} placeholder="e.g. support@vendor.com" />
+                  </div>
+                  <div className="form-field">
+                    <label>Contact Phone</label>
+                    <input type="text" value={newContact.contactPhone} onChange={e => setNewContact({ ...newContact, contactPhone: e.target.value })} placeholder="e.g. +1-800-555-0100" />
+                  </div>
+                </>
+              )}
+              {contactError && <p className="field-error">{contactError}</p>}
             </fieldset>
 
             <fieldset>
               <legend>Responsible Personnel</legend>
-              <Field label="Responsible Person" error={errors.responsibleName}>
-                <input
-                  type="text"
-                  value={form.responsibleName}
-                  onChange={e => set('responsibleName', e.target.value)}
-                  placeholder="e.g. Alice Johnson"
-                />
-              </Field>
-              <Field label="Responsible Person Email" error={errors.responsibleEmail}>
-                <input
-                  type="email"
-                  value={form.responsibleEmail}
-                  onChange={e => set('responsibleEmail', e.target.value)}
-                  placeholder="e.g. alice@company.com"
-                />
-              </Field>
-              <Field label="Department" error={errors.responsibleDepartment}>
-                <input
-                  type="text"
-                  value={form.responsibleDepartment}
-                  onChange={e => set('responsibleDepartment', e.target.value)}
-                  placeholder="e.g. IT Infrastructure"
-                />
-              </Field>
+              <div className="mode-tabs">
+                <button type="button" className={`mode-tab${employeeMode === 'existing' ? ' mode-tab-active' : ''}`} onClick={() => setEmployeeMode('existing')}>
+                  Select Existing
+                </button>
+                <button type="button" className={`mode-tab${employeeMode === 'new' ? ' mode-tab-active' : ''}`} onClick={() => setEmployeeMode('new')}>
+                  Create New
+                </button>
+              </div>
+              {employeeMode === 'existing' ? (
+                <div className="form-field">
+                  <label>Select Employees</label>
+                  <div className="employee-checklist-form">
+                    {employees.length === 0 ? (
+                      <p className="empty-hint">No employees found. Switch to "Create New" to add one.</p>
+                    ) : employees.map(emp => (
+                      <label key={emp.id} className="emp-check-label">
+                        <input
+                          type="checkbox"
+                          checked={selectedEmployeeIds.includes(emp.id)}
+                          onChange={() => toggleEmployee(emp.id)}
+                        />
+                        {emp.name} — {emp.department}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="form-field">
+                    <label>Name</label>
+                    <input type="text" value={newEmployee.empName} onChange={e => setNewEmployee({ ...newEmployee, empName: e.target.value })} placeholder="e.g. Alice Johnson" />
+                  </div>
+                  <div className="form-field">
+                    <label>Email</label>
+                    <input type="email" value={newEmployee.empEmail} onChange={e => setNewEmployee({ ...newEmployee, empEmail: e.target.value })} placeholder="e.g. alice@company.com" />
+                  </div>
+                  <div className="form-field">
+                    <label>Department</label>
+                    <input type="text" value={newEmployee.empDepartment} onChange={e => setNewEmployee({ ...newEmployee, empDepartment: e.target.value })} placeholder="e.g. IT Infrastructure" />
+                  </div>
+                </>
+              )}
+              {employeeError && <p className="field-error">{employeeError}</p>}
             </fieldset>
 
             {submitError && <p className="field-error">{submitError}</p>}

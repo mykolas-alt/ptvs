@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
 import '../styles/Reports.css'
@@ -14,6 +14,9 @@ type ReportDetail = {
 }
 
 type ReportData = {
+  id: string
+  status: string
+  generatedAt: string
   startDate: string
   endDate: string
   totalCost: number
@@ -21,12 +24,13 @@ type ReportData = {
   details: ReportDetail[]
 }
 
-type Report = {
+type ReportSummary = {
   id: string
+  status: string
+  generatedAt: string
   startDate: string
   endDate: string
-  generatedAt: string
-  data: ReportData
+  totalCost: number
 }
 
 function formatReportContent(data: ReportData): string {
@@ -36,13 +40,13 @@ function formatReportContent(data: ReportData): string {
     '',
     'SUMMARY',
     '-------',
-    `Total Cost: $${Number(data.totalCost).toLocaleString()}`,
+    `Total Cost: €${Number(data.totalCost).toLocaleString()}`,
   ]
 
   if (Object.keys(data.costByServiceType).length > 0) {
     lines.push('', 'COST BY TYPE', '------------')
     for (const [type, cost] of Object.entries(data.costByServiceType)) {
-      lines.push(`${type}: $${Number(cost).toLocaleString()}`)
+      lines.push(`${type}: €${Number(cost).toLocaleString()}`)
     }
   }
 
@@ -51,7 +55,7 @@ function formatReportContent(data: ReportData): string {
     data.details.forEach((d, i) => {
       lines.push(
         `${i + 1}. ${d.serviceName} (${d.vendorName})`,
-        `   Monthly Rate: $${Number(d.monthlyRate).toLocaleString()}  |  Days Active: ${d.daysActiveInRange}  |  Period Cost: $${Number(d.calculatedRangeCost).toLocaleString()}`,
+        `   Monthly Rate: €${Number(d.monthlyRate).toLocaleString()}  |  Days Active: ${d.daysActiveInRange}  |  Period Cost: €${Number(d.calculatedRangeCost).toLocaleString()}`,
       )
     })
   }
@@ -64,21 +68,61 @@ export function Reports() {
   const { userInfo, isLoading, logout } = useAuth()
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [reports, setReports] = useState<Report[]>([])
-  const [activeReport, setActiveReport] = useState<Report | null>(null)
+  const [savedReports, setSavedReports] = useState<ReportSummary[]>([])
+  const [savedReportsLoading, setSavedReportsLoading] = useState(true)
+  const [activeReportData, setActiveReportData] = useState<ReportData | null>(null)
+  const [viewLoading, setViewLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [dateError, setDateError] = useState<string | null>(null)
   const [generateError, setGenerateError] = useState<string | null>(null)
-  const [duplicateId, setDuplicateId] = useState<string | null>(null)
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function getToken() { return localStorage.getItem(tokenStorageKey) }
+
+  useEffect(() => {
+    return () => { if (pollingRef.current) clearTimeout(pollingRef.current) }
+  }, [])
+
+  async function loadReports() {
+    try {
+      const res = await fetch(`${apiBaseUrl}/reports/cost-report?size=100`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) return
+      const page = await res.json() as { content: ReportSummary[] }
+      setSavedReports(Array.isArray(page.content) ? page.content : [])
+    } catch {
+      // ignore — list just stays empty
+    }
+  }
+
+  useEffect(() => {
+    if (isLoading) return
+    loadReports().finally(() => setSavedReportsLoading(false))
+  }, [isLoading])
 
   if (isLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
   }
 
+  async function pollUntilComplete(id: string, maxAttempts = 30): Promise<ReportData> {
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise<void>(resolve => { pollingRef.current = setTimeout(resolve, 2000) })
+      const res = await fetch(`${apiBaseUrl}/reports/cost-report/${id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error('Failed to check report status.')
+      const data = await res.json() as ReportData
+      if (data.status === 'COMPLETED') return data
+      if (data.status === 'FAILED') throw new Error('Report generation failed.')
+      await loadReports()
+    }
+    throw new Error('Report generation timed out.')
+  }
+
   async function handleGenerate() {
     setDateError(null)
     setGenerateError(null)
-    setDuplicateId(null)
 
     if (!startDate || !endDate) {
       setDateError('Please select both a start date and an end date.')
@@ -89,41 +133,43 @@ export function Reports() {
       return
     }
 
-    const existing = reports.find(r => r.startDate === startDate && r.endDate === endDate)
-    if (existing) {
-      setDuplicateId(existing.id)
-      setActiveReport(existing)
-      return
-    }
-
     setIsGenerating(true)
-
     try {
-      const token = localStorage.getItem(tokenStorageKey)
       const res = await fetch(`${apiBaseUrl}/reports/cost-report`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify({ startDate, endDate }),
       })
-      if (!res.ok) throw new Error('Failed to generate report.')
-      const data = await res.json() as ReportData
-
-      const report: Report = {
-        id: crypto.randomUUID(),
-        startDate,
-        endDate,
-        generatedAt: new Date().toLocaleString(),
-        data,
-      }
-      setReports(prev => [report, ...prev])
-      setActiveReport(report)
+      if (!res.ok) throw new Error('Failed to start report generation.')
+      const initial = await res.json() as ReportData
+      await loadReports()
+      const completed = await pollUntilComplete(initial.id)
+      await loadReports()
+      setActiveReportData(completed)
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Report generation failed.')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  async function handleView(id: string) {
+    setViewLoading(true)
+    setActiveReportData(null)
+    try {
+      const res = await fetch(`${apiBaseUrl}/reports/cost-report/${id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json() as ReportData
+      setActiveReportData(data)
+    } catch {
+      setGenerateError('Failed to load report.')
+    } finally {
+      setViewLoading(false)
     }
   }
 
@@ -143,7 +189,7 @@ export function Reports() {
                 id="report-start"
                 type="date"
                 value={startDate}
-                onChange={e => { setStartDate(e.target.value); setDateError(null); setGenerateError(null); setDuplicateId(null) }}
+                onChange={e => { setStartDate(e.target.value); setDateError(null); setGenerateError(null) }}
               />
             </div>
             <div className="form-field">
@@ -152,31 +198,23 @@ export function Reports() {
                 id="report-end"
                 type="date"
                 value={endDate}
-                onChange={e => { setEndDate(e.target.value); setDateError(null); setGenerateError(null); setDuplicateId(null) }}
+                onChange={e => { setEndDate(e.target.value); setDateError(null); setGenerateError(null) }}
               />
             </div>
-            <button className="btn-primary" onClick={handleGenerate} disabled={isGenerating}>
+            <button className="btn-primary" onClick={handleGenerate} disabled={isGenerating || viewLoading}>
               {isGenerating ? 'Generating…' : 'Generate'}
             </button>
           </div>
+          {isGenerating && <p className="generating-notice">Processing report, please wait…</p>}
           {dateError && <p className="field-error">{dateError}</p>}
           {generateError && <p className="field-error">{generateError}</p>}
-          {duplicateId && (
-            <p className="duplicate-notice">
-              A report for this period was already generated.{' '}
-              <button
-                className="link-btn"
-                onClick={() => setActiveReport(reports.find(r => r.id === duplicateId) ?? null)}
-              >
-                View it
-              </button>
-            </p>
-          )}
         </div>
 
         <div className="report-log">
           <h2>Previously Generated Reports</h2>
-          {reports.length === 0 ? (
+          {savedReportsLoading ? (
+            <p className="empty-log">Loading...</p>
+          ) : savedReports.length === 0 ? (
             <p className="empty-log">No reports generated yet.</p>
           ) : (
             <table className="reports-table">
@@ -184,20 +222,26 @@ export function Reports() {
                 <tr>
                   <th>Period Start</th>
                   <th>Period End</th>
-                  <th>Generated At</th>
+                  <th>Total Cost</th>
+                  <th>Status</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {reports.map(r => (
+                {savedReports.map(r => (
                   <tr key={r.id}>
                     <td>{r.startDate}</td>
                     <td>{r.endDate}</td>
-                    <td>{r.generatedAt}</td>
+                    <td>{r.status === 'COMPLETED' ? `€${Number(r.totalCost).toLocaleString()}` : '—'}</td>
+                    <td><span className={`report-status report-status-${r.status.toLowerCase()}`}>{r.status.charAt(0) + r.status.slice(1).toLowerCase()}</span></td>
                     <td>
-                      <button className="link-btn" onClick={() => setActiveReport(r)}>
-                        View
-                      </button>
+                      {r.status === 'COMPLETED' && (
+                        <button className="link-btn" onClick={() => handleView(r.id)} disabled={viewLoading}>
+                          View
+                        </button>
+                      )}
+                      {r.status === 'PROCESSING' && <span className="report-processing-note">Processing…</span>}
+                      {r.status === 'FAILED' && <span className="report-failed-note">Failed</span>}
                     </td>
                   </tr>
                 ))}
@@ -207,17 +251,20 @@ export function Reports() {
         </div>
       </main>
 
-      {activeReport && (
-        <div className="modal-overlay" onClick={() => setActiveReport(null)}>
+      {(activeReportData || viewLoading) && (
+        <div className="modal-overlay" onClick={() => { setActiveReportData(null); setViewLoading(false) }}>
           <div className="modal report-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>
-                Report: {activeReport.startDate} – {activeReport.endDate}
+                {activeReportData ? `Report: ${activeReportData.startDate} – ${activeReportData.endDate}` : 'Loading report…'}
               </h2>
-              <button className="modal-close" onClick={() => setActiveReport(null)}>✕</button>
+              <button className="modal-close" onClick={() => { setActiveReportData(null); setViewLoading(false) }}>✕</button>
             </div>
             <div className="modal-body">
-              <pre className="report-content">{formatReportContent(activeReport.data)}</pre>
+              {activeReportData
+                ? <pre className="report-content">{formatReportContent(activeReportData)}</pre>
+                : <p className="loading-text">Loading…</p>
+              }
             </div>
           </div>
         </div>
