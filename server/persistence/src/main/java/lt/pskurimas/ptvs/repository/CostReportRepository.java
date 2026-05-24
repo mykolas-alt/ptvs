@@ -10,6 +10,5 @@ import java.util.UUID;
 
 @Repository
 public interface CostReportRepository extends JpaRepository<CostReport, UUID> {
-
-    <T> Page<T> findBy(Class<T> type, Pageable pageable);
+    Page<CostReport> findAll(Pageable pageable);
 }
