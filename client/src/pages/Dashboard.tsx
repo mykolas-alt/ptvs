@@ -130,20 +130,17 @@ export function Dashboard() {
   }
 
   async function handleDeactivate(svc: Service) {
-    const isInactive = svc.status === 'DEACTIVATED' || svc.status === 'EXPIRED'
-    const next: ServiceStatus = isInactive ? 'ACTIVE' : 'DEACTIVATED'
     const token = getToken()
     try {
-      const res = await fetch(`${apiBaseUrl}/services/${svc.id}/status?status=${next}`, {
-        method: 'PATCH',
+      const res = await fetch(`${apiBaseUrl}/services/${svc.id}`, {
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error()
-      const updated = await res.json() as Service
-      setServices(prev => prev.map(s => s.id === updated.id ? updated : s))
-      setSelected(updated)
+      setServices(prev => prev.map(s => s.id === svc.id ? { ...s, status: 'DEACTIVATED' } : s))
+      setSelected({ ...svc, status: 'DEACTIVATED' })
     } catch {
-      alert('Failed to update service status.')
+      alert('Failed to deactivate service.')
     }
   }
 
@@ -363,12 +360,14 @@ export function Dashboard() {
                 {!isEditing && (
                   <>
                     <button className="btn-secondary btn-sm" onClick={() => openEdit(selected)}>Edit</button>
-                    <button
-                      className={`btn-sm ${selected.status === 'DEACTIVATED' || selected.status === 'EXPIRED' ? 'btn-activate' : 'btn-deactivate'}`}
-                      onClick={() => handleDeactivate(selected)}
-                    >
-                      {selected.status === 'DEACTIVATED' || selected.status === 'EXPIRED' ? 'Activate' : 'Deactivate'}
-                    </button>
+                    {selected.status !== 'DEACTIVATED' && selected.status !== 'EXPIRED' && (
+                      <button
+                        className="btn-sm btn-deactivate"
+                        onClick={() => handleDeactivate(selected)}
+                      >
+                        Deactivate
+                      </button>
+                    )}
                   </>
                 )}
                 <button className="modal-close" onClick={() => { setSelected(null); setIsEditing(false) }}>✕</button>

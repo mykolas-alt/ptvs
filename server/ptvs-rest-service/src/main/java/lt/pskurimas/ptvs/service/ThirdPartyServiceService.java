@@ -72,13 +72,6 @@ public class ThirdPartyServiceService {
                 .map(serviceConverter::toResponse);
     }
 
-    public ServiceResponse updateServiceStatus(UUID id, ServiceStatus status) {
-        ThirdPartyService service = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + id));
-        service.setStatus(status);
-        return serviceConverter.toResponse(repository.save(service));
-    }
-
     public void deleteService(UUID id) {
         log.info("Deactivating third party service id=[{}]", id);
         ThirdPartyService service = repository.findById(id)

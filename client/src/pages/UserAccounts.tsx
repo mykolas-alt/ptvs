@@ -63,12 +63,8 @@ export function UserAccounts() {
     setShowConflict(false)
   }
 
-  async function toggleAdminRole(user: UserAccount) {
-    const isAdmin = user.roles.includes('ADMIN')
-    const newRoles = isAdmin
-      ? user.roles.filter(r => r !== 'ADMIN')
-      : [...user.roles, 'ADMIN']
-
+  async function revokeAdmin(user: UserAccount) {
+    const newRoles = user.roles.filter(r => r !== 'ADMIN')
     setTogglingId(user.id)
     try {
       await submitRoleUpdate(user, newRoles)
@@ -164,13 +160,13 @@ export function UserAccounts() {
                         </div>
                       </td>
                       <td className="action-cell">
-                        {!isSelf && (
+                        {!isSelf && isAdmin && (
                           <button
-                            className={`btn-row-edit ${isAdmin ? 'btn-row-revoke' : ''}`}
-                            onClick={() => toggleAdminRole(u)}
+                            className="btn-row-edit btn-row-revoke"
+                            onClick={() => revokeAdmin(u)}
                             disabled={isToggling}
                           >
-                            {isToggling ? '...' : isAdmin ? 'Revoke Admin' : 'Grant Admin'}
+                            {isToggling ? '...' : 'Revoke Admin'}
                           </button>
                         )}
                       </td>
