@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="021-employee-notification-additional-email" author="Ignas">
+        <createTable tableName="employee_notification_additional_email">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true"
+                             primaryKeyName="pk_employee_notification_additional_email"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="employee_notification_config_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_additional_email_config"
+                             references="employee_notification_config(id)"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="021-drop-additional-emails-column" author="Ignas">
+        <dropColumn tableName="employee_notification_config" columnName="additional_emails"/>
+    </changeSet>
+
+</databaseChangeLog>

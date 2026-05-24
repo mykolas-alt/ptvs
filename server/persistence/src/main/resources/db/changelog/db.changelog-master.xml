@@ -24,4 +24,5 @@
     <include file="changesets/018-update-seed-notification-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/019-drop-notification-vendor-config.xml" relativeToChangelogFile="true"/>
     <include file="changesets/020-drop-notification-user-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/021-employee-notification-additional-email.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

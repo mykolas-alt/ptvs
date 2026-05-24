@@ -10,6 +10,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -46,12 +48,19 @@ class EmployeeNotificationConfigServiceTest {
         serviceNotificationConfig.setId(UUID.randomUUID());
         serviceNotificationConfig.setService(thirdPartyService);
 
+        EmployeeNotificationAdditionalEmail email1 = EmployeeNotificationAdditionalEmail.builder()
+                .email("boss@imone.lt")
+                .build();
+        EmployeeNotificationAdditionalEmail email2 = EmployeeNotificationAdditionalEmail.builder()
+                .email("cfo@imone.lt")
+                .build();
+
         config = EmployeeNotificationConfig.builder()
                 .id(UUID.randomUUID())
                 .employee(employee)
                 .serviceNotificationConfig(serviceNotificationConfig)
                 .daysBeforeExpiry(30)
-                .additionalEmails("boss@imone.lt, cfo@imone.lt")
+                .additionalEmails(new ArrayList<>(List.of(email1, email2)))
                 .build();
     }
 
@@ -94,8 +103,8 @@ class EmployeeNotificationConfigServiceTest {
     }
 
     @Test
-    void getServiceNotificationDetails_WhenAdditionalEmailsBlank_ReturnsEmptyList() {
-        config.setAdditionalEmails("   ");
+    void getServiceNotificationDetails_WhenAdditionalEmailsEmpty_ReturnsEmptyList() {
+        config.setAdditionalEmails(new ArrayList<>());
         when(employeeConfigRepo.findByEmployeeIdAndServiceNotificationConfigServiceId(employeeId, serviceId))
                 .thenReturn(Optional.of(config));
 
@@ -107,7 +116,9 @@ class EmployeeNotificationConfigServiceTest {
 
     @Test
     void getServiceNotificationDetails_WhenSingleAdditionalEmail_ReturnsListWithOneEntry() {
-        config.setAdditionalEmails("solo@imone.lt");
+        config.setAdditionalEmails(new ArrayList<>(List.of(
+                EmployeeNotificationAdditionalEmail.builder().email("solo@imone.lt").build()
+        )));
         when(employeeConfigRepo.findByEmployeeIdAndServiceNotificationConfigServiceId(employeeId, serviceId))
                 .thenReturn(Optional.of(config));
 

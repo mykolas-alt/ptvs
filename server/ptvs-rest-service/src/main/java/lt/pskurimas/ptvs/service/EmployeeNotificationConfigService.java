@@ -2,12 +2,12 @@ package lt.pskurimas.ptvs.service;
 
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.dto.response.notification.EmployeeNotificationResult;
+import lt.pskurimas.ptvs.model.EmployeeNotificationAdditionalEmail;
 import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
 import lt.pskurimas.ptvs.repository.EmployeeNotificationConfigRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,12 +27,11 @@ public class EmployeeNotificationConfigService {
             return null;
         }
 
-        String additionalEmailsRaw = config.getAdditionalEmails();
-        List<String> additionalEmails = additionalEmailsRaw != null && !additionalEmailsRaw.isBlank()
-                ? Arrays.stream(additionalEmailsRaw.split(","))
-                .map(String::trim)
-                .toList()
-                : List.of();
+        List<String> additionalEmails = config.getAdditionalEmails() == null
+                ? List.of()
+                : config.getAdditionalEmails().stream()
+                .map(EmployeeNotificationAdditionalEmail::getEmail)
+                .toList();
 
         return EmployeeNotificationResult.builder()
                 .employeeId(employeeId)

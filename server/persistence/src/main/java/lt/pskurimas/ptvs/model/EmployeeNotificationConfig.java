@@ -2,6 +2,8 @@ package lt.pskurimas.ptvs.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -24,10 +26,11 @@ public class EmployeeNotificationConfig {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "service_notification_config_id")
     private ServiceNotificationConfig serviceNotificationConfig;
-    
+
     @Column(name = "days_before_expiry")
     private Integer daysBeforeExpiry;
 
-    @Column(name = "additional_emails", columnDefinition = "TEXT")
-    private String additionalEmails;
+    @OneToMany(mappedBy = "employeeNotificationConfig", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<EmployeeNotificationAdditionalEmail> additionalEmails = new ArrayList<>();
 }

@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -13,5 +15,5 @@ import java.util.UUID;
 public class CreateEmployeeNotificationConfigRequest {
     private UUID employeeId;
     private Integer daysBeforeExpiry;
-    private String additionalEmails;
+    private List<String> additionalEmails;
 }

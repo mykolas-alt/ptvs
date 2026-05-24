@@ -5,11 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateEmployeeNotificationConfigRequest {
     private Integer daysBeforeExpiry;
-    private String additionalEmails;
+    private List<String> additionalEmails;
 }

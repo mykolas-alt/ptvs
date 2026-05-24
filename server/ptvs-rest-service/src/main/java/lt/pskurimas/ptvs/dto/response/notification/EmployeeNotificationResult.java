@@ -11,8 +11,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class EmployeeNotificationResult {
-    UUID employeeId;
-    String employeeEmail;
-    List<String> additionalEmails;
-    Integer daysBeforeExpiry;
+    private UUID employeeId;
+    private String employeeEmail;
+    private List<String> additionalEmails;
+    private Integer daysBeforeExpiry;
 }

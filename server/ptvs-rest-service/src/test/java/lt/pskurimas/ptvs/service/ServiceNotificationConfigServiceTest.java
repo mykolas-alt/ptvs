@@ -32,8 +32,8 @@ class ServiceNotificationConfigServiceTest {
     @InjectMocks
     private ServiceNotificationConfigService service;
 
-    private final UUID serviceId       = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
-    private final UUID employeeId      = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    private final UUID serviceId        = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+    private final UUID employeeId       = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private final UUID employeeConfigId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
     private Employee employee;
@@ -60,13 +60,13 @@ class ServiceNotificationConfigServiceTest {
                 .employee(employee)
                 .serviceNotificationConfig(serviceNotificationConfig)
                 .daysBeforeExpiry(30)
-                .additionalEmails("boss@imone.lt")
+                .additionalEmails(new ArrayList<>(List.of(
+                        EmployeeNotificationAdditionalEmail.builder().email("boss@imone.lt").build()
+                )))
                 .build();
 
         serviceNotificationConfig.setEmployeeConfigs(new ArrayList<>(List.of(employeeNotificationConfig)));
     }
-
-    // --- getEmployeeConfigs ---
 
     @Test
     void getEmployeeConfigs_WhenServiceConfigExists_ReturnsMappedList() {
@@ -78,7 +78,7 @@ class ServiceNotificationConfigServiceTest {
         assertEquals(employeeConfigId, result.get(0).getId());
         assertEquals(employeeId, result.get(0).getEmployeeId());
         assertEquals(30, result.get(0).getDaysBeforeExpiry());
-        assertEquals("boss@imone.lt", result.get(0).getAdditionalEmails());
+        assertTrue(result.get(0).getAdditionalEmails().contains("boss@imone.lt"));
     }
 
     @Test
@@ -88,36 +88,24 @@ class ServiceNotificationConfigServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.getEmployeeConfigs(serviceId));
     }
 
-    // --- addEmployeeConfig ---
-
     @Test
     void addEmployeeConfig_WhenValid_AndServiceConfigExists_SavesAndReturnsResponse() {
         CreateEmployeeNotificationConfigRequest request = new CreateEmployeeNotificationConfigRequest();
         request.setEmployeeId(employeeId);
         request.setDaysBeforeExpiry(14);
-        request.setAdditionalEmails("cfo@imone.lt");
+        request.setAdditionalEmails(List.of("cfo@imone.lt"));
 
         when(thirdPartyServiceRepo.findById(serviceId)).thenReturn(Optional.of(thirdPartyService));
         when(employeeRepo.findById(employeeId)).thenReturn(Optional.of(employee));
         when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.of(serviceNotificationConfig));
-        when(employeeConfigRepo.save(any())).thenAnswer(inv -> {
-            EmployeeNotificationConfig c = inv.getArgument(0);
-            c = EmployeeNotificationConfig.builder()
-                    .id(UUID.randomUUID())
-                    .employee(c.getEmployee())
-                    .serviceNotificationConfig(c.getServiceNotificationConfig())
-                    .daysBeforeExpiry(c.getDaysBeforeExpiry())
-                    .additionalEmails(c.getAdditionalEmails())
-                    .build();
-            return c;
-        });
+        when(employeeConfigRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         EmployeeNotificationConfigResponse result = service.addEmployeeConfig(serviceId, request);
 
         assertNotNull(result);
         assertEquals(employeeId, result.getEmployeeId());
         assertEquals(14, result.getDaysBeforeExpiry());
-        assertEquals("cfo@imone.lt", result.getAdditionalEmails());
+        assertTrue(result.getAdditionalEmails().contains("cfo@imone.lt"));
     }
 
     @Test
@@ -131,16 +119,7 @@ class ServiceNotificationConfigServiceTest {
         when(employeeRepo.findById(employeeId)).thenReturn(Optional.of(employee));
         when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.empty());
         when(serviceConfigRepo.save(any(ServiceNotificationConfig.class))).thenReturn(serviceNotificationConfig);
-        when(employeeConfigRepo.save(any())).thenAnswer(inv -> {
-            EmployeeNotificationConfig c = inv.getArgument(0);
-            return EmployeeNotificationConfig.builder()
-                    .id(UUID.randomUUID())
-                    .employee(c.getEmployee())
-                    .serviceNotificationConfig(c.getServiceNotificationConfig())
-                    .daysBeforeExpiry(c.getDaysBeforeExpiry())
-                    .additionalEmails(c.getAdditionalEmails())
-                    .build();
-        });
+        when(employeeConfigRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         EmployeeNotificationConfigResponse result = service.addEmployeeConfig(serviceId, request);
 
@@ -208,13 +187,11 @@ class ServiceNotificationConfigServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.addEmployeeConfig(serviceId, request));
     }
 
-    // --- updateEmployeeConfig ---
-
     @Test
     void updateEmployeeConfig_WhenValid_UpdatesAndReturnsResponse() {
         UpdateEmployeeNotificationConfigRequest request = new UpdateEmployeeNotificationConfigRequest();
         request.setDaysBeforeExpiry(60);
-        request.setAdditionalEmails("new@imone.lt");
+        request.setAdditionalEmails(List.of("new@imone.lt"));
 
         when(employeeConfigRepo.findById(employeeConfigId)).thenReturn(Optional.of(employeeNotificationConfig));
         when(employeeConfigRepo.save(employeeNotificationConfig)).thenReturn(employeeNotificationConfig);
@@ -222,7 +199,7 @@ class ServiceNotificationConfigServiceTest {
         EmployeeNotificationConfigResponse result = service.updateEmployeeConfig(serviceId, employeeConfigId, request);
 
         assertEquals(60, result.getDaysBeforeExpiry());
-        assertEquals("new@imone.lt", result.getAdditionalEmails());
+        assertTrue(result.getAdditionalEmails().contains("new@imone.lt"));
     }
 
     @Test
@@ -246,8 +223,6 @@ class ServiceNotificationConfigServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.updateEmployeeConfig(serviceId, employeeConfigId, request));
     }
-
-    // --- deleteEmployeeConfig ---
 
     @Test
     void deleteEmployeeConfig_WhenConfigFound_AndServiceConfigStillHasOtherConfigs_DeletesOnlyEmployeeConfig() {

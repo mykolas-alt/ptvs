@@ -6,6 +6,7 @@ import lt.pskurimas.ptvs.dto.request.notification.CreateEmployeeNotificationConf
 import lt.pskurimas.ptvs.dto.request.notification.UpdateEmployeeNotificationConfigRequest;
 import lt.pskurimas.ptvs.dto.response.notification.EmployeeNotificationConfigResponse;
 import lt.pskurimas.ptvs.model.Employee;
+import lt.pskurimas.ptvs.model.EmployeeNotificationAdditionalEmail;
 import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
 import lt.pskurimas.ptvs.model.ServiceNotificationConfig;
 import lt.pskurimas.ptvs.model.ThirdPartyService;
@@ -15,7 +16,6 @@ import lt.pskurimas.ptvs.repository.ServiceNotificationConfigRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,13 +33,7 @@ public class ServiceNotificationConfigService {
         return findServiceConfigOrThrow(serviceId)
                 .getEmployeeConfigs()
                 .stream()
-                .map(config -> EmployeeNotificationConfigResponse.builder()
-                        .id(config.getId())
-                        .employeeId(config.getEmployee().getId())
-                        .serviceId(config.getServiceNotificationConfig().getService().getId())
-                        .daysBeforeExpiry(config.getDaysBeforeExpiry())
-                        .additionalEmails(config.getAdditionalEmails())
-                        .build())
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -73,18 +67,13 @@ public class ServiceNotificationConfigService {
                 .employee(employee)
                 .serviceNotificationConfig(serviceConfig)
                 .daysBeforeExpiry(request.getDaysBeforeExpiry())
-                .additionalEmails(request.getAdditionalEmails())
                 .build();
+
+        syncAdditionalEmails(config, request.getAdditionalEmails());
 
         EmployeeNotificationConfig saved = employeeConfigRepo.save(config);
 
-        return EmployeeNotificationConfigResponse.builder()
-                .id(saved.getId())
-                .employeeId(saved.getEmployee().getId())
-                .serviceId(saved.getServiceNotificationConfig().getService().getId())
-                .daysBeforeExpiry(saved.getDaysBeforeExpiry())
-                .additionalEmails(saved.getAdditionalEmails())
-                .build();
+        return toResponse(saved);
     }
 
     @Transactional
@@ -101,17 +90,12 @@ public class ServiceNotificationConfigService {
         validateAdditionalEmails(request.getAdditionalEmails());
 
         existing.setDaysBeforeExpiry(request.getDaysBeforeExpiry());
-        existing.setAdditionalEmails(request.getAdditionalEmails());
+
+        syncAdditionalEmails(existing, request.getAdditionalEmails());
 
         EmployeeNotificationConfig saved = employeeConfigRepo.save(existing);
 
-        return EmployeeNotificationConfigResponse.builder()
-                .id(saved.getId())
-                .employeeId(saved.getEmployee().getId())
-                .serviceId(saved.getServiceNotificationConfig().getService().getId())
-                .daysBeforeExpiry(saved.getDaysBeforeExpiry())
-                .additionalEmails(saved.getAdditionalEmails())
-                .build();
+        return toResponse(saved);
     }
 
     @Transactional
@@ -134,18 +118,43 @@ public class ServiceNotificationConfigService {
                 .orElseThrow(() -> new IllegalArgumentException("Service config not found for serviceId: " + serviceId));
     }
 
+    private EmployeeNotificationConfigResponse toResponse(EmployeeNotificationConfig config) {
+        return EmployeeNotificationConfigResponse.builder()
+                .id(config.getId())
+                .employeeId(config.getEmployee().getId())
+                .serviceId(config.getServiceNotificationConfig().getService().getId())
+                .daysBeforeExpiry(config.getDaysBeforeExpiry())
+                .additionalEmails(config.getAdditionalEmails().stream()
+                        .map(EmployeeNotificationAdditionalEmail::getEmail)
+                        .toList())
+                .build();
+    }
+
+    private void syncAdditionalEmails(EmployeeNotificationConfig config, List<String> emails) {
+        config.getAdditionalEmails().clear();
+        if (emails != null) {
+            emails.forEach(email ->
+                    config.getAdditionalEmails().add(
+                            EmployeeNotificationAdditionalEmail.builder()
+                                    .email(email)
+                                    .employeeNotificationConfig(config)
+                                    .build()
+                    )
+            );
+        }
+    }
+
     private void validateDaysBeforeExpiry(Integer days) {
         if (days == null || days <= 0) {
             throw new IllegalArgumentException("Days before expiry must be greater than 0");
         }
     }
 
-    private void validateAdditionalEmails(String additionalEmails) {
-        if (additionalEmails == null || additionalEmails.isBlank()) return;
+    private void validateAdditionalEmails(List<String> additionalEmails) {
+        if (additionalEmails == null || additionalEmails.isEmpty()) return;
 
         String emailRegex = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
-        List<String> invalid = Arrays.stream(additionalEmails.split(","))
-                .map(String::trim)
+        List<String> invalid = additionalEmails.stream()
                 .filter(email -> !email.matches(emailRegex))
                 .toList();
 

@@ -16,8 +16,17 @@ import java.util.UUID;
 public interface EmployeeNotificationConfigRepository
         extends JpaRepository<EmployeeNotificationConfig, UUID> {
 
+    @Query("""
+        SELECT enc
+        FROM EmployeeNotificationConfig enc
+        JOIN FETCH enc.employee
+        LEFT JOIN FETCH enc.additionalEmails
+        WHERE enc.employee.id = :employeeId
+        AND enc.serviceNotificationConfig.service.id = :serviceId
+    """)
     Optional<EmployeeNotificationConfig> findByEmployeeIdAndServiceNotificationConfigServiceId(
-            UUID employeeId, UUID serviceId);
+            @Param("employeeId") UUID employeeId,
+            @Param("serviceId") UUID serviceId);
 
     long countByServiceNotificationConfigId(UUID serviceNotificationConfigId);
 
@@ -28,6 +37,7 @@ public interface EmployeeNotificationConfigRepository
         JOIN FETCH enc.serviceNotificationConfig snc
         JOIN FETCH snc.service s
         JOIN FETCH s.vendorContact vc
+        LEFT JOIN FETCH enc.additionalEmails ae
         WHERE s.status = :status
     """)
     List<EmployeeNotificationConfig> findAllNotificationDetailsForActiveServices(
