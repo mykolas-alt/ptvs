@@ -8,6 +8,8 @@ import lt.pskurimas.ptvs.model.AppUser;
 import lt.pskurimas.ptvs.repository.AppUserRepository;
 import lt.pskurimas.ptvs.util.OptimisticLockValidator;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +50,17 @@ public class AdminUserService {
                 .map(Enum::name)
                 .sorted()
                 .toList();
-        return new UserInfoResponse(user.getUsername(), roles, user.getVersion());
+        return new UserInfoResponse(user.getUsername(), user.getId(), roles, user.getVersion());
+    }
+
+    public Page<UserInfoResponse> getAllUsers(Pageable pageable) {
+        return appUserRepository.findAll(pageable)
+                .map(user -> {
+                    List<String> roles = user.getRoles().stream()
+                            .map(Enum::name)
+                            .sorted()
+                            .toList();
+                    return new UserInfoResponse(user.getUsername(), user.getId(), roles, user.getVersion());
+                });
     }
 }

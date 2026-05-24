@@ -42,14 +42,12 @@ public class ThirdPartyServiceController {
     }
 
     @GetMapping("/{id}")
-    @RequireRole(UserRole.ADMIN)
     public ResponseEntity<ServiceResponse> getServiceById(@PathVariable UUID id,
                                                           @CurrentUser AppUser user) {
         return ResponseEntity.ok(serviceService.getServiceById(id));
     }
 
     @GetMapping("/status/{status}")
-    @RequireRole(UserRole.ADMIN)
     public PagedResponse<ServiceResponse> getServicesByStatus(
             @PathVariable ServiceStatus status,
             @PageableDefault Pageable pageable,

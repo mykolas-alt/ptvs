@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="021-employee-notification-additional-email" author="Ignas">
+    <changeSet id="023-employee-notification-additional-email" author="Ignas">
         <createTable tableName="employee_notification_additional_email">
             <column name="id" type="UUID">
                 <constraints nullable="false" primaryKey="true"
@@ -22,16 +22,8 @@
         </createTable>
     </changeSet>
 
-    <changeSet id="021-drop-additional-emails-column" author="Ignas">
+    <changeSet id="023-drop-additional-emails-column" author="Ignas">
         <dropColumn tableName="employee_notification_config" columnName="additional_emails"/>
-    </changeSet>
-
-    <changeSet id="021-add-notification-enable-option" author="Ignas">
-        <addColumn tableName="employee_notification_config">
-            <column name="notifications_enabled" type="BOOLEAN" defaultValueBoolean="true">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
     </changeSet>
 
 </databaseChangeLog>

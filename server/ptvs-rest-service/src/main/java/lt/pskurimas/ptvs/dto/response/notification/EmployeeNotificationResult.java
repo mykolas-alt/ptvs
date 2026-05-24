@@ -15,5 +15,4 @@ public class EmployeeNotificationResult {
     private String employeeEmail;
     private List<String> additionalEmails;
     private Integer daysBeforeExpiry;
-    private Boolean notificationsEnabled;
 }

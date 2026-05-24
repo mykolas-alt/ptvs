@@ -43,7 +43,6 @@ public class VendorContactController {
     }
 
     @GetMapping("/{id}")
-    @RequireRole(UserRole.ADMIN)
     public ResponseEntity<VendorContactResponse> getVendorContact(@PathVariable UUID id,
                                                                   @CurrentUser AppUser user) {
         var vendorContact = vendorContactService.getVendorContactById(id);
@@ -61,7 +60,6 @@ public class VendorContactController {
     }
 
     @GetMapping
-    @RequireRole(UserRole.ADMIN)
     public PagedResponse<VendorContactResponse> getAllVendorContacts(@CurrentUser AppUser user,
                                                                      @PageableDefault Pageable pageable) {
         return PagedResponse.of(vendorContactService.getAllVendorContacts(pageable));

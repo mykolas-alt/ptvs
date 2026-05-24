@@ -19,10 +19,12 @@
     <include file="changesets/013-audit-log-entry-payload.xml" relativeToChangelogFile="true"/>
     <include file="changesets/014-add-entity-version-columns.xml" relativeToChangelogFile="true"/>
     <include file="changesets/015-app-user-audit.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/016-update-service-notification-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/017-update-employee-notification-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/018-update-seed-notification-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/019-drop-notification-vendor-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/020-drop-notification-user-config.xml" relativeToChangelogFile="true"/>
-    <include file="changesets/021-employee-notification-additional-email.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/016-async-cost-reports.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/017-drop-service-name-unique-constraint.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/018-update-service-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/019-update-employee-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/020-update-seed-notification-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/021-drop-notification-vendor-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/022-drop-notification-user-config.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/023-employee-notification-additional-email.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

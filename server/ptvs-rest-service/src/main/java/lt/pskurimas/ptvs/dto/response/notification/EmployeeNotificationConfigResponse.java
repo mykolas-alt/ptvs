@@ -20,5 +20,4 @@ public class EmployeeNotificationConfigResponse {
     private UUID serviceId;
     private List<String> additionalEmails;
     private Integer daysBeforeExpiry;
-    private Boolean notificationsEnabled;
 }

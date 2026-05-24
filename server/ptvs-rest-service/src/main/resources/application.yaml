@@ -44,3 +44,5 @@ ptvs:
       enabled: true
       exclude-paths:
         - /api/auth/me
+  notifications:
+    enabled: true

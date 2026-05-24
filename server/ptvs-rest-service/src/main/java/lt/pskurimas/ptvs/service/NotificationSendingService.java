@@ -11,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "ptvs.notifications.enabled", havingValue = "true", matchIfMissing = true)
 public class NotificationSendingService {
     
     private final EmployeeNotificationConfigRepository employeeConfigRepo;

@@ -67,11 +67,7 @@ public class ServiceNotificationConfigService {
                 .employee(employee)
                 .serviceNotificationConfig(serviceConfig)
                 .daysBeforeExpiry(request.getDaysBeforeExpiry())
-            .build();
-
-        config.setNotificationsEnabled(request.getNotificationsEnabled() != null
-            ? request.getNotificationsEnabled()
-            : true);
+                .build();
 
         syncAdditionalEmails(config, request.getAdditionalEmails());
 
@@ -94,10 +90,6 @@ public class ServiceNotificationConfigService {
         validateAdditionalEmails(request.getAdditionalEmails());
 
         existing.setDaysBeforeExpiry(request.getDaysBeforeExpiry());
-
-        if (request.getNotificationsEnabled() != null) {
-            existing.setNotificationsEnabled(request.getNotificationsEnabled());
-        }
 
         syncAdditionalEmails(existing, request.getAdditionalEmails());
 
@@ -133,9 +125,8 @@ public class ServiceNotificationConfigService {
                 .serviceId(config.getServiceNotificationConfig().getService().getId())
                 .daysBeforeExpiry(config.getDaysBeforeExpiry())
                 .additionalEmails(config.getAdditionalEmails().stream()
-                        .map(EmployeeNotificationAdditionalEmail::getEmail)
-                        .toList())
-            .notificationsEnabled(config.isNotificationsEnabled())
+                    .map(EmployeeNotificationAdditionalEmail::getEmail)
+                    .toList())
                 .build();
     }
 

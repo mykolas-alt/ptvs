@@ -1,0 +1,51 @@
+.role-badges {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.role-admin {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
+}
+
+.role-user {
+  background: #f5f5f5;
+  color: #757575;
+  border: 1px solid #bdbdbd;
+}
+
+.self-badge {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #5a5a5a;
+  background: #eeeeee;
+  border: 1px solid #d0d0d0;
+  vertical-align: middle;
+  letter-spacing: 0.2px;
+}
+
+.btn-row-revoke {
+  border-color: #ffcc80 !important;
+  color: #e65100 !important;
+  background: #fff3e0 !important;
+}
+
+.btn-row-revoke:hover:not(:disabled) {
+  background: #ffe0b2 !important;
+}

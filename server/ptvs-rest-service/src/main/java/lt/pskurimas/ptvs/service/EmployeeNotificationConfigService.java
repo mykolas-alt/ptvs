@@ -34,11 +34,10 @@ public class EmployeeNotificationConfigService {
                 .toList();
 
         return EmployeeNotificationResult.builder()
-                .employeeId(employeeId)
-                .employeeEmail(config.getEmployee().getEmail())
-                .additionalEmails(additionalEmails)
-                .daysBeforeExpiry(config.getDaysBeforeExpiry())
-            .notificationsEnabled(config.isNotificationsEnabled())
-                .build();
+            .employeeId(employeeId)
+            .employeeEmail(config.getEmployee().getEmail())
+            .additionalEmails(additionalEmails)
+            .daysBeforeExpiry(config.getDaysBeforeExpiry())
+            .build();
     }
 }

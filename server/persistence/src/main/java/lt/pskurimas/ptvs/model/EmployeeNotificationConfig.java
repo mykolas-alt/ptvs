@@ -30,9 +30,6 @@ public class EmployeeNotificationConfig {
     @Column(name = "days_before_expiry")
     private Integer daysBeforeExpiry;
 
-    @Column(name = "notifications_enabled", nullable = false)
-    private boolean notificationsEnabled = false;
-
     @OneToMany(mappedBy = "employeeNotificationConfig", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<EmployeeNotificationAdditionalEmail> additionalEmails = new ArrayList<>();

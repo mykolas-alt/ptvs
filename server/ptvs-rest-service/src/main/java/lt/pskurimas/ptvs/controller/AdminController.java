@@ -6,10 +6,13 @@ import lt.pskurimas.ptvs.annotation.RequireRole;
 import lt.pskurimas.ptvs.audit.AuditAction;
 import lt.pskurimas.ptvs.audit.Auditable;
 import lt.pskurimas.ptvs.dto.request.auth.UpdateUserRolesRequest;
+import lt.pskurimas.ptvs.dto.response.PagedResponse;
 import lt.pskurimas.ptvs.dto.response.auth.UserInfoResponse;
 import lt.pskurimas.ptvs.model.AppUser;
 import lt.pskurimas.ptvs.model.UserRole;
 import lt.pskurimas.ptvs.service.AdminUserService;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -40,5 +43,11 @@ public class AdminController {
                                             @RequestBody UpdateUserRolesRequest request,
                                             @CurrentUser AppUser user) {
         return adminUserService.updateUserRoles(userId, request);
+    }
+
+    @GetMapping("/users")
+    @RequireRole(UserRole.ADMIN)
+    public PagedResponse<UserInfoResponse> getAllUsers(@PageableDefault Pageable pageable) {
+        return PagedResponse.of(adminUserService.getAllUsers(pageable));
     }
 }

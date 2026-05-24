@@ -186,6 +186,51 @@
   background: #fff8f0;
 }
 
+.generating-notice {
+  font-size: 13px;
+  color: #f57c00;
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+.report-status {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.report-status-processing {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
+}
+
+.report-status-completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.report-status-failed {
+  background: #fce4ec;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.report-processing-note {
+  font-size: 12px;
+  color: #e65100;
+  font-style: italic;
+}
+
+.report-failed-note {
+  font-size: 12px;
+  color: #c62828;
+}
+
 /* Report popup modal */
 
 .modal-overlay {
