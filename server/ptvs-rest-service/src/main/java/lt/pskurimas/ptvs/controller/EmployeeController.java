@@ -43,7 +43,6 @@ public class EmployeeController {
     }
 
     @GetMapping("/{id}")
-    @RequireRole(UserRole.ADMIN)
     public ResponseEntity<EmployeeResponse> getEmployee(@PathVariable UUID id,
                                                         @CurrentUser AppUser user) {
         var employee = employeeService.getEmployeeById(id);
@@ -61,7 +60,6 @@ public class EmployeeController {
     }
 
     @GetMapping
-    @RequireRole(UserRole.ADMIN)
     public PagedResponse<EmployeeResponse> getAllEmployees(@CurrentUser AppUser user,
                                                            @PageableDefault Pageable pageable) {
         return PagedResponse.of(employeeService.getAllEmployees(pageable));
