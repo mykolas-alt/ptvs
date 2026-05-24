@@ -46,6 +46,6 @@ public class AuthController {
                 .map(Enum::name)
                 .sorted()
                 .toList();
-        return ResponseEntity.ok(new UserInfoResponse(user.getUsername(), roles, user.getVersion()));
+        return ResponseEntity.ok(new UserInfoResponse(user.getUsername(), user.getId(), roles, user.getVersion()));
     }
 }
