@@ -1,4 +1,4 @@
-package lt.pskurimas.ptvs.dto.request;
+package lt.pskurimas.ptvs.dto.request.notification;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

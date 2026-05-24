@@ -1,8 +1,8 @@
 package lt.pskurimas.ptvs.service;
 
-import lt.pskurimas.ptvs.dto.request.CreateEmployeeNotificationConfigRequest;
-import lt.pskurimas.ptvs.dto.request.UpdateEmployeeNotificationConfigRequest;
-import lt.pskurimas.ptvs.dto.response.EmployeeNotificationConfigResponse;
+import lt.pskurimas.ptvs.dto.request.notification.CreateEmployeeNotificationConfigRequest;
+import lt.pskurimas.ptvs.dto.request.notification.UpdateEmployeeNotificationConfigRequest;
+import lt.pskurimas.ptvs.dto.response.notification.EmployeeNotificationConfigResponse;
 import lt.pskurimas.ptvs.model.*;
 import lt.pskurimas.ptvs.repository.*;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,4 +1,4 @@
-package lt.pskurimas.ptvs.dto.response;
+package lt.pskurimas.ptvs.dto.response.notification;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
