@@ -28,6 +28,7 @@ type Service = {
   monthlyCost: number
   contractStartDate: string
   contractEndDate: string
+  manualDeactivatedAt: string | null
   status: ServiceStatus
   vendorContact: VendorContact | null
   responsiblePersonnel: Employee[]
@@ -298,7 +299,12 @@ export function Dashboard() {
                         <td>{service.serviceName}</td>
                         <td>{service.vendorContact?.vendorName ?? '—'}</td>
                         <td>{service.contractStartDate}</td>
-                        <td>{service.contractEndDate}</td>
+                        <td>
+                          {service.contractEndDate}
+                          {service.manualDeactivatedAt && (
+                            <span className="deactivated-date"> (deactivated {service.manualDeactivatedAt})</span>
+                          )}
+                        </td>
                         <td>
                           <span className={`status-badge ${STATUS_CLASS[service.status]}`}>
                             {service.status.charAt(0) + service.status.slice(1).toLowerCase()}
@@ -441,6 +447,9 @@ export function Dashboard() {
                   <p><strong>Monthly Cost:</strong> €{Number(selected.monthlyCost).toLocaleString()}</p>
                   <p><strong>Start:</strong> {selected.contractStartDate}</p>
                   <p><strong>Expiry:</strong> {selected.contractEndDate}</p>
+                  {selected.manualDeactivatedAt && (
+                    <p><strong>Deactivated:</strong> {selected.manualDeactivatedAt}</p>
+                  )}
                 </section>
                 <section className="modal-section">
                   <h3>Contact Information</h3>

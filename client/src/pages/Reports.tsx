@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
 import '../styles/Reports.css'
@@ -14,6 +14,9 @@ type ReportDetail = {
 }
 
 type ReportData = {
+  id: string
+  status: string
+  generatedAt: string
   startDate: string
   endDate: string
   totalCost: number
@@ -23,6 +26,8 @@ type ReportData = {
 
 type ReportSummary = {
   id: string
+  status: string
+  generatedAt: string
   startDate: string
   endDate: string
   totalCost: number
@@ -70,8 +75,13 @@ export function Reports() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [dateError, setDateError] = useState<string | null>(null)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function getToken() { return localStorage.getItem(tokenStorageKey) }
+
+  useEffect(() => {
+    return () => { if (pollingRef.current) clearTimeout(pollingRef.current) }
+  }, [])
 
   async function loadReports() {
     try {
@@ -93,6 +103,21 @@ export function Reports() {
 
   if (isLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
+  }
+
+  async function pollUntilComplete(id: string, maxAttempts = 30): Promise<ReportData> {
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise<void>(resolve => { pollingRef.current = setTimeout(resolve, 2000) })
+      const res = await fetch(`${apiBaseUrl}/reports/cost-report/${id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error('Failed to check report status.')
+      const data = await res.json() as ReportData
+      if (data.status === 'COMPLETED') return data
+      if (data.status === 'FAILED') throw new Error('Report generation failed.')
+      await loadReports()
+    }
+    throw new Error('Report generation timed out.')
   }
 
   async function handleGenerate() {
@@ -118,10 +143,12 @@ export function Reports() {
         },
         body: JSON.stringify({ startDate, endDate }),
       })
-      if (!res.ok) throw new Error('Failed to generate report.')
-      const data = await res.json() as ReportData
+      if (!res.ok) throw new Error('Failed to start report generation.')
+      const initial = await res.json() as ReportData
       await loadReports()
-      setActiveReportData(data)
+      const completed = await pollUntilComplete(initial.id)
+      await loadReports()
+      setActiveReportData(completed)
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Report generation failed.')
     } finally {
@@ -178,6 +205,7 @@ export function Reports() {
               {isGenerating ? 'Generating…' : 'Generate'}
             </button>
           </div>
+          {isGenerating && <p className="generating-notice">Processing report, please wait…</p>}
           {dateError && <p className="field-error">{dateError}</p>}
           {generateError && <p className="field-error">{generateError}</p>}
         </div>
@@ -195,6 +223,7 @@ export function Reports() {
                   <th>Period Start</th>
                   <th>Period End</th>
                   <th>Total Cost</th>
+                  <th>Status</th>
                   <th></th>
                 </tr>
               </thead>
@@ -203,11 +232,16 @@ export function Reports() {
                   <tr key={r.id}>
                     <td>{r.startDate}</td>
                     <td>{r.endDate}</td>
-                    <td>€{Number(r.totalCost).toLocaleString()}</td>
+                    <td>{r.status === 'COMPLETED' ? `€${Number(r.totalCost).toLocaleString()}` : '—'}</td>
+                    <td><span className={`report-status report-status-${r.status.toLowerCase()}`}>{r.status.charAt(0) + r.status.slice(1).toLowerCase()}</span></td>
                     <td>
-                      <button className="link-btn" onClick={() => handleView(r.id)} disabled={viewLoading}>
-                        View
-                      </button>
+                      {r.status === 'COMPLETED' && (
+                        <button className="link-btn" onClick={() => handleView(r.id)} disabled={viewLoading}>
+                          View
+                        </button>
+                      )}
+                      {r.status === 'PROCESSING' && <span className="report-processing-note">Processing…</span>}
+                      {r.status === 'FAILED' && <span className="report-failed-note">Failed</span>}
                     </td>
                   </tr>
                 ))}
