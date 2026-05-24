@@ -8,7 +8,6 @@ import lt.pskurimas.ptvs.util.DateProvider;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -44,7 +43,10 @@ public class NotificationSendingService {
                 continue;
             }
 
-            List<String> additionalEmails = parseAdditionalEmails(config.getAdditionalEmails());
+            List<String> additionalEmails = config.getAdditionalEmails()
+                .stream()
+                .map(additionalEmail -> additionalEmail.getEmail())
+                .toList();
 
             try {
 
@@ -72,17 +74,6 @@ public class NotificationSendingService {
         long daysRemaining = ChronoUnit.DAYS.between(today, contractEndDate);
 
         return daysRemaining == daysBeforeExpiry;
-    }
-
-    private List<String> parseAdditionalEmails(String rawEmails) {
-
-        if (rawEmails == null || rawEmails.isBlank()) {
-            return List.of();
-        }
-
-        return Arrays.stream(rawEmails.split(","))
-                .map(String::trim)
-                .toList();
     }
 
 }
