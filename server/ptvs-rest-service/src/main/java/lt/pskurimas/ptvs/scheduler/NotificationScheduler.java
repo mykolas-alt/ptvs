@@ -9,14 +9,19 @@ import org.springframework.stereotype.Component;
 import lt.pskurimas.ptvs.service.NotificationSendingService;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "ptvs.notifications.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+        prefix = "ptvs.notifications",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true
+)
+@Component
 public class NotificationScheduler {
 
     private final NotificationSendingService notificationSendingService;
 
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "${ptvs.notifications.cron}")
     public void sendExpirationNotifications() {
 
         log.info("Starting expiration notification scheduler");
