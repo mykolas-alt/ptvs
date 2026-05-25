@@ -5,35 +5,69 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="005-seed-notification-config" author="Ignas">
+    <changeSet id="007-seed-notification-config" author="Ignas">
 
-        <!-- Global config: notifications enabled, notify all vendors, 30 days in advance -->
-        <insert tableName="notification_user_config">
+        <insert tableName="vendor_contact">
+            <column name="id" value="ffffffff-ffff-ffff-ffff-ffffffffffff"/>
+            <column name="name" value="Notification Test Vendor Contact"/>
+            <column name="email" value="vendor-contact@imone.lt"/>
+            <column name="vendor_name" value="Test Vendor"/>
+        </insert>
+
+        <insert tableName="third_party_service">
+            <column name="id" value="cccccccc-cccc-cccc-cccc-cccccccccccc"/>
+            <column name="service_name" value="Notification Test Service"/>
+            <column name="monthly_cost" valueNumeric="0.00"/>
+            <column name="contract_start_date" valueDate="2025-01-01"/>
+            <column name="contract_end_date" valueDate="2026-01-01"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="vendor_contact_id" value="ffffffff-ffff-ffff-ffff-ffffffffffff"/>
+        </insert>
+
+        <insert tableName="third_party_service">
+            <column name="id" value="eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"/>
+            <column name="service_name" value="Notification Test Service 2"/>
+            <column name="monthly_cost" valueNumeric="0.00"/>
+            <column name="contract_start_date" valueDate="2025-01-01"/>
+            <column name="contract_end_date" valueDate="2026-01-01"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="vendor_contact_id" value="ffffffff-ffff-ffff-ffff-ffffffffffff"/>
+        </insert>
+
+        <insert tableName="employee">
+            <column name="id" value="11111111-1111-1111-1111-111111111111"/>
+            <column name="name" value="Notification Test Employee"/>
+            <column name="email" value="test@imone.lt"/>
+            <column name="department" value="IT"/>
+        </insert>
+
+        <!-- Global config: notifications enabled, notify all services, 30 days in advance -->
+        <insert tableName="employee_notification_config">
             <column name="id" value="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"/>
-            <column name="user_id" value="11111111-1111-1111-1111-111111111111"/>
+            <column name="employee_id" value="11111111-1111-1111-1111-111111111111"/>
             <column name="notifications_enabled" valueBoolean="true"/>
             <column name="notify_all" valueBoolean="false"/>
             <column name="days_before_expiry" valueNumeric="30"/>
             <column name="additional_emails" value="boss@imone.lt, info@imone.lt"/>
         </insert>
 
-        <!-- Vendor-specific config: overrides global days to 14, vendor enabled -->
-        <insert tableName="notification_vendor_config">
+        <!-- Service-specific config: overrides global days to 14, service enabled -->
+        <insert tableName="service_notification_config">
             <column name="id" value="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"/>
-            <column name="user_id" value="11111111-1111-1111-1111-111111111111"/>
-            <column name="vendor_id" value="cccccccc-cccc-cccc-cccc-cccccccccccc"/>
-            <column name="vendor_enabled" valueBoolean="true"/>
+            <column name="employee_id" value="11111111-1111-1111-1111-111111111111"/>
+            <column name="service_id" value="cccccccc-cccc-cccc-cccc-cccccccccccc"/>
+            <column name="service_enabled" valueBoolean="true"/>
             <column name="days_before_expiry" valueNumeric="14"/>
             <column name="additional_emails" value="vendor@imone.lt"/>
         </insert>
 
-        <!-- Vendor-specific config: no override for days (should fallback to global 30), vendor disabled -->
-        <insert tableName="notification_vendor_config">
+        <!-- Service-specific config: no override for days (should fallback to global 30), service disabled -->
+        <insert tableName="service_notification_config">
             <column name="id" value="dddddddd-dddd-dddd-dddd-dddddddddddd"/>
-            <column name="user_id" value="11111111-1111-1111-1111-111111111111"/>
-            <column name="vendor_id" value="eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"/>
-            <column name="vendor_enabled" valueBoolean="false"/>
-            <column name="days_before_expiry" valueNumeric="null"/>
+            <column name="employee_id" value="11111111-1111-1111-1111-111111111111"/>
+            <column name="service_id" value="eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"/>
+            <column name="service_enabled" valueBoolean="false"/>
+            <column name="days_before_expiry" valueComputed="NULL"/>
             <column name="additional_emails" valueComputed="NULL"/>
         </insert>
 

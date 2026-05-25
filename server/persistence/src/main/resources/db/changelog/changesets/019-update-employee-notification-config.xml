@@ -5,20 +5,18 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="006-create-employee-notification-config" author="Ignas">
+    <changeSet id="019-recreate-employee-notification-config" author="Ignas">
+        <dropTable tableName="employee_notification_config" cascadeConstraints="true"/>
+
         <createTable tableName="employee_notification_config">
             <column name="id" type="UUID">
                 <constraints nullable="false" primaryKey="true"
                              primaryKeyName="pk_employee_notification_config"/>
             </column>
             <column name="employee_id" type="UUID">
-                <constraints nullable="false" unique="true"
-                             uniqueConstraintName="uk_employee_notification_config_employee"/>
-            </column>
-            <column name="notifications_enabled" type="BOOLEAN" defaultValueBoolean="false">
                 <constraints nullable="false"/>
             </column>
-            <column name="notify_all" type="BOOLEAN" defaultValueBoolean="false">
+            <column name="service_notification_config_id" type="UUID">
                 <constraints nullable="false"/>
             </column>
             <column name="days_before_expiry" type="INT"/>
@@ -32,6 +30,19 @@
                 referencedColumnNames="id"
                 onDelete="CASCADE"
                 constraintName="fk_employee_notification_config_employee"/>
+
+        <addForeignKeyConstraint
+                baseTableName="employee_notification_config"
+                baseColumnNames="service_notification_config_id"
+                referencedTableName="service_notification_config"
+                referencedColumnNames="id"
+                onDelete="CASCADE"
+                constraintName="fk_employee_notification_config_service_config"/>
+
+        <addUniqueConstraint
+                tableName="employee_notification_config"
+                columnNames="employee_id, service_notification_config_id"
+                constraintName="uk_employee_notification_config_employee_service_config"/>
     </changeSet>
 
 </databaseChangeLog>
