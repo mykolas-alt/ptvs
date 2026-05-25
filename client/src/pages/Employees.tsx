@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
-import { OptimisticLockConflictModal } from '../components/OptimisticLockConflictModal'
 import '../styles/ManagePage.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
@@ -49,8 +48,9 @@ export function Employees() {
   const [errors, setErrors] = useState<EmpErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [showConflict, setShowConflict] = useState(false)
-  const [conflictLoading, setConflictLoading] = useState(false)
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null)
+
+  const isAdmin = userInfo?.roles.includes('ADMIN') ?? false
 
   function getToken() { return localStorage.getItem(tokenStorageKey) }
 
@@ -75,9 +75,11 @@ export function Employees() {
 
   function openCreate() {
     setEditingId(null)
+    setEditingVersion(null)
     setForm(EMPTY)
     setErrors({})
     setSubmitError(null)
+    setConflictWarning(null)
     setShowForm(true)
   }
 
@@ -87,6 +89,7 @@ export function Employees() {
     setForm({ name: emp.name, email: emp.email, phone: emp.phone ?? '', department: emp.department, jobTitle: emp.jobTitle ?? '' })
     setErrors({})
     setSubmitError(null)
+    setConflictWarning(null)
     setShowForm(true)
   }
 
@@ -96,21 +99,32 @@ export function Employees() {
     setEditingVersion(null)
     setForm(EMPTY)
     setErrors({})
+    setConflictWarning(null)
   }
 
-  async function submitUpdate(forceUpdate = false) {
+  async function submitUpdate() {
     if (!editingId) return
     const token = getToken()
     const res = await fetch(`${apiBaseUrl}/employees/${editingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ...form, version: editingVersion, forceUpdate }),
+      body: JSON.stringify({ ...form, version: editingVersion }),
     })
-    if (res.status === 409) { setShowConflict(true); return }
+    if (res.status === 409) {
+      const freshRes = await fetch(`${apiBaseUrl}/employees/${editingId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (freshRes.ok) {
+        const fresh = await freshRes.json() as Employee
+        setEmployees(prev => prev.map(e => e.id === fresh.id ? fresh : e))
+        setEditingVersion(fresh.version)
+      }
+      setConflictWarning('This record was modified by someone else. Version refreshed — review and save again.')
+      return
+    }
     if (!res.ok) throw new Error('Failed to update employee.')
     const updated = await res.json() as Employee
     setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e))
-    setShowConflict(false)
     closeForm()
   }
 
@@ -121,6 +135,7 @@ export function Employees() {
 
     setIsSubmitting(true)
     setSubmitError(null)
+    setConflictWarning(null)
     try {
       if (editingId) {
         await submitUpdate()
@@ -142,98 +157,18 @@ export function Employees() {
     }
   }
 
-  async function handleConflictReload() {
-    if (!editingId) return
-    setConflictLoading(true)
-    try {
-      const res = await fetch(`${apiBaseUrl}/employees/${editingId}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      })
-      if (!res.ok) throw new Error()
-      const fresh = await res.json() as Employee
-      setEmployees(prev => prev.map(e => e.id === fresh.id ? fresh : e))
-      setEditingVersion(fresh.version)
-      setForm({ name: fresh.name, email: fresh.email, phone: fresh.phone ?? '', department: fresh.department, jobTitle: fresh.jobTitle ?? '' })
-      setShowConflict(false)
-    } catch {
-      setSubmitError('Failed to reload employee data.')
-      setShowConflict(false)
-    } finally {
-      setConflictLoading(false)
-    }
-  }
-
-  async function handleConflictForce() {
-    setConflictLoading(true)
-    try {
-      await submitUpdate(true)
-    } catch {
-      setSubmitError('Force update failed.')
-      setShowConflict(false)
-    } finally {
-      setConflictLoading(false)
-    }
-  }
-
   return (
     <div className="page-container">
       <Navbar userInfo={userInfo} onLogout={logout} />
-      {showConflict && (
-        <OptimisticLockConflictModal
-          entityLabel="employee"
-          onReload={handleConflictReload}
-          onForce={handleConflictForce}
-          onClose={() => setShowConflict(false)}
-          isLoading={conflictLoading}
-        />
-      )}
       <main className="manage-main">
         <div className="manage-toolbar">
           <h1>Employees</h1>
-          <button className="btn-primary btn-sm-add" onClick={showForm && !editingId ? closeForm : openCreate}>
-            {showForm && !editingId ? 'Cancel' : '+ Add Employee'}
-          </button>
+          {isAdmin && (
+            <button className="btn-primary btn-sm-add" onClick={openCreate}>
+              + Add Employee
+            </button>
+          )}
         </div>
-
-        {showForm && (
-          <form className="manage-form" onSubmit={handleSubmit} noValidate>
-            <p className="manage-form-title">{editingId ? 'Edit Employee' : 'New Employee'}</p>
-            <div className="manage-form-grid">
-              <div className={`form-field${errors.name ? ' has-error' : ''}`}>
-                <label>Name</label>
-                <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. Alice Johnson" />
-                {errors.name && <span className="field-error">{errors.name}</span>}
-              </div>
-              <div className={`form-field${errors.email ? ' has-error' : ''}`}>
-                <label>Email</label>
-                <input type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="e.g. alice@company.com" />
-                {errors.email && <span className="field-error">{errors.email}</span>}
-              </div>
-              <div className="form-field">
-                <label>Phone</label>
-                <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} placeholder="e.g. +370 600 00000" />
-              </div>
-              <div className={`form-field${errors.department ? ' has-error' : ''}`}>
-                <label>Department</label>
-                <input type="text" value={form.department} onChange={e => setField('department', e.target.value)} placeholder="e.g. IT Infrastructure" />
-                {errors.department && <span className="field-error">{errors.department}</span>}
-              </div>
-              <div className="form-field">
-                <label>Job Title</label>
-                <input type="text" value={form.jobTitle} onChange={e => setField('jobTitle', e.target.value)} placeholder="e.g. Systems Administrator" />
-              </div>
-            </div>
-            {submitError && <p className="field-error">{submitError}</p>}
-            <div className="manage-form-actions">
-              <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : editingId ? 'Save Changes' : 'Save Employee'}
-              </button>
-              {editingId && (
-                <button type="button" className="btn-cancel" onClick={closeForm}>Cancel</button>
-              )}
-            </div>
-          </form>
-        )}
 
         <div className="table-wrapper">
           {listLoading ? (
@@ -247,27 +182,24 @@ export function Employees() {
                   <th>Department</th>
                   <th>Job Title</th>
                   <th>Phone</th>
-                  <th></th>
+                  {isAdmin && <th></th>}
                 </tr>
               </thead>
               <tbody>
                 {employees.length === 0 ? (
-                  <tr><td colSpan={6} className="empty-row">No employees yet.</td></tr>
+                  <tr><td colSpan={isAdmin ? 6 : 5} className="empty-row">No employees yet.</td></tr>
                 ) : employees.map(emp => (
-                  <tr key={emp.id} className={editingId === emp.id ? 'row-editing' : ''}>
+                  <tr key={emp.id}>
                     <td>{emp.name}</td>
                     <td>{emp.email}</td>
                     <td>{emp.department}</td>
                     <td>{emp.jobTitle || '—'}</td>
                     <td>{emp.phone || '—'}</td>
-                    <td className="action-cell">
-                      <button
-                        className="btn-row-edit"
-                        onClick={() => editingId === emp.id ? closeForm() : openEdit(emp)}
-                      >
-                        {editingId === emp.id ? 'Cancel' : 'Edit'}
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="action-cell">
+                        <button className="btn-row-edit" onClick={() => openEdit(emp)}>Edit</button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -275,6 +207,54 @@ export function Employees() {
           )}
         </div>
       </main>
+
+      {showForm && (
+        <div className="manage-modal-overlay" onClick={closeForm}>
+          <div className="manage-modal" onClick={e => e.stopPropagation()}>
+            <div className="manage-modal-header">
+              <h2>{editingId ? 'Edit Employee' : 'New Employee'}</h2>
+              <button className="manage-modal-close" onClick={closeForm}>✕</button>
+            </div>
+            <div className="manage-modal-body">
+              <form onSubmit={handleSubmit} noValidate>
+                {conflictWarning && <p className="conflict-warning">{conflictWarning}</p>}
+                <div className="manage-form-grid">
+                  <div className={`form-field${errors.name ? ' has-error' : ''}`}>
+                    <label>Name</label>
+                    <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. Alice Johnson" />
+                    {errors.name && <span className="field-error">{errors.name}</span>}
+                  </div>
+                  <div className={`form-field${errors.email ? ' has-error' : ''}`}>
+                    <label>Email</label>
+                    <input type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="e.g. alice@company.com" />
+                    {errors.email && <span className="field-error">{errors.email}</span>}
+                  </div>
+                  <div className="form-field">
+                    <label>Phone</label>
+                    <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} placeholder="e.g. +370 600 00000" />
+                  </div>
+                  <div className={`form-field${errors.department ? ' has-error' : ''}`}>
+                    <label>Department</label>
+                    <input type="text" value={form.department} onChange={e => setField('department', e.target.value)} placeholder="e.g. IT Infrastructure" />
+                    {errors.department && <span className="field-error">{errors.department}</span>}
+                  </div>
+                  <div className="form-field">
+                    <label>Job Title</label>
+                    <input type="text" value={form.jobTitle} onChange={e => setField('jobTitle', e.target.value)} placeholder="e.g. Systems Administrator" />
+                  </div>
+                </div>
+                {submitError && <p className="field-error" style={{ marginTop: 8 }}>{submitError}</p>}
+                <div className="manage-form-actions" style={{ marginTop: 12 }}>
+                  <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Saving...' : editingId ? 'Save Changes' : 'Save Employee'}
+                  </button>
+                  <button type="button" className="btn-cancel" onClick={closeForm}>Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -24,8 +24,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -37,8 +39,12 @@ public class ThirdPartyServiceController {
 
     @GetMapping
     public PagedResponse<ServiceResponse> getAllServices(@CurrentUser AppUser user,
+                                                         @RequestParam(required = false) List<ServiceStatus> statuses,
                                                          @PageableDefault Pageable pageable) {
-        return PagedResponse.of(serviceService.getAllServices(pageable));
+        if (statuses == null || statuses.isEmpty()) {
+            return PagedResponse.of(serviceService.getAllServices(pageable));
+        }
+        return PagedResponse.of(serviceService.getServicesByStatuses(statuses, pageable));
     }
 
     @GetMapping("/{id}")

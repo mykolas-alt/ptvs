@@ -14,8 +14,8 @@ const tokenStorageKey = 'ptvs_auth_token'
 
 function Login() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState('ADMIN')
-  const [password, setPassword] = useState('ADMIN')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [mode, setMode] = useState<AuthMode>('login')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)

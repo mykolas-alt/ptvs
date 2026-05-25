@@ -33,6 +33,12 @@ type ReportSummary = {
   totalCost: number
 }
 
+function formatDateTime(dt: string) {
+  if (!dt) return '—'
+  const d = new Date(dt)
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 function formatReportContent(data: ReportData): string {
   const lines: string[] = [
     'THIRD-PARTY SERVICE REPORT',
@@ -75,7 +81,10 @@ export function Reports() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [dateError, setDateError] = useState<string | null>(null)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [newlyGeneratedId, setNewlyGeneratedId] = useState<string | null>(null)
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isAdmin = userInfo?.roles.includes('ADMIN') ?? false
 
   function getToken() { return localStorage.getItem(tokenStorageKey) }
 
@@ -123,6 +132,7 @@ export function Reports() {
   async function handleGenerate() {
     setDateError(null)
     setGenerateError(null)
+    setNewlyGeneratedId(null)
 
     if (!startDate || !endDate) {
       setDateError('Please select both a start date and an end date.')
@@ -146,9 +156,9 @@ export function Reports() {
       if (!res.ok) throw new Error('Failed to start report generation.')
       const initial = await res.json() as ReportData
       await loadReports()
-      const completed = await pollUntilComplete(initial.id)
+      await pollUntilComplete(initial.id)
       await loadReports()
-      setActiveReportData(completed)
+      setNewlyGeneratedId(initial.id)
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Report generation failed.')
     } finally {
@@ -180,35 +190,37 @@ export function Reports() {
       <main className="reports-main">
         <h1>Reports</h1>
 
-        <div className="report-card">
-          <h2>Generate Report</h2>
-          <div className="report-date-row">
-            <div className="form-field">
-              <label htmlFor="report-start">Start Date</label>
-              <input
-                id="report-start"
-                type="date"
-                value={startDate}
-                onChange={e => { setStartDate(e.target.value); setDateError(null); setGenerateError(null) }}
-              />
+        {isAdmin && (
+          <div className="report-card">
+            <h2>Generate Report</h2>
+            <div className="report-date-row">
+              <div className="form-field">
+                <label htmlFor="report-start">Start Date</label>
+                <input
+                  id="report-start"
+                  type="date"
+                  value={startDate}
+                  onChange={e => { setStartDate(e.target.value); setDateError(null); setGenerateError(null) }}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="report-end">End Date</label>
+                <input
+                  id="report-end"
+                  type="date"
+                  value={endDate}
+                  onChange={e => { setEndDate(e.target.value); setDateError(null); setGenerateError(null) }}
+                />
+              </div>
+              <button className="btn-primary" onClick={handleGenerate} disabled={isGenerating || viewLoading}>
+                {isGenerating ? 'Generating…' : 'Generate'}
+              </button>
             </div>
-            <div className="form-field">
-              <label htmlFor="report-end">End Date</label>
-              <input
-                id="report-end"
-                type="date"
-                value={endDate}
-                onChange={e => { setEndDate(e.target.value); setDateError(null); setGenerateError(null) }}
-              />
-            </div>
-            <button className="btn-primary" onClick={handleGenerate} disabled={isGenerating || viewLoading}>
-              {isGenerating ? 'Generating…' : 'Generate'}
-            </button>
+            {isGenerating && <p className="generating-notice">Processing report, please wait…</p>}
+            {dateError && <p className="field-error">{dateError}</p>}
+            {generateError && <p className="field-error">{generateError}</p>}
           </div>
-          {isGenerating && <p className="generating-notice">Processing report, please wait…</p>}
-          {dateError && <p className="field-error">{dateError}</p>}
-          {generateError && <p className="field-error">{generateError}</p>}
-        </div>
+        )}
 
         <div className="report-log">
           <h2>Previously Generated Reports</h2>
@@ -220,6 +232,7 @@ export function Reports() {
             <table className="reports-table">
               <thead>
                 <tr>
+                  <th>Generated At</th>
                   <th>Period Start</th>
                   <th>Period End</th>
                   <th>Total Cost</th>
@@ -230,15 +243,21 @@ export function Reports() {
               <tbody>
                 {savedReports.map(r => (
                   <tr key={r.id}>
+                    <td>{formatDateTime(r.generatedAt)}</td>
                     <td>{r.startDate}</td>
                     <td>{r.endDate}</td>
                     <td>{r.status === 'COMPLETED' ? `€${Number(r.totalCost).toLocaleString()}` : '—'}</td>
                     <td><span className={`report-status report-status-${r.status.toLowerCase()}`}>{r.status.charAt(0) + r.status.slice(1).toLowerCase()}</span></td>
                     <td>
                       {r.status === 'COMPLETED' && (
-                        <button className="link-btn" onClick={() => handleView(r.id)} disabled={viewLoading}>
-                          View
-                        </button>
+                        <div className="report-action-cell">
+                          <button className="link-btn" onClick={() => handleView(r.id)} disabled={viewLoading}>
+                            View
+                          </button>
+                          {r.id === newlyGeneratedId && (
+                            <span className="report-ready-badge">Ready</span>
+                          )}
+                        </div>
                       )}
                       {r.status === 'PROCESSING' && <span className="report-processing-note">Processing…</span>}
                       {r.status === 'FAILED' && <span className="report-failed-note">Failed</span>}

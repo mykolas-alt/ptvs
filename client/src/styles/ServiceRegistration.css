@@ -53,7 +53,7 @@ legend {
   color: #5a5a5a;
 }
 
-.form-field input,
+.form-field input:not([type="checkbox"]):not([type="radio"]),
 .form-field select {
   background: #fff;
   color: #1c1c1c;
@@ -212,6 +212,12 @@ legend {
   font-size: 13px;
   color: #3a3a3a;
   cursor: pointer;
+}
+
+.emp-check-label input[type="checkbox"] {
+  width: auto;
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .empty-hint {

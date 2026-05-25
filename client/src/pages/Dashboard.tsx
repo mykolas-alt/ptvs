@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
 import { OptimisticLockConflictModal } from '../components/OptimisticLockConflictModal'
@@ -57,6 +57,7 @@ const PAGE_SIZE = 10
 export function Dashboard() {
   const { userInfo, isLoading, logout } = useAuth()
   const [services, setServices] = useState<Service[]>([])
+  const [totalPages, setTotalPages] = useState(1)
   const [servicesLoading, setServicesLoading] = useState(true)
   const [servicesError, setServicesError] = useState<string | null>(null)
   const [statusFilters, setStatusFilters] = useState<ServiceStatus[]>([])
@@ -76,27 +77,44 @@ export function Dashboard() {
     return localStorage.getItem(tokenStorageKey)
   }
 
+  const loadServices = useCallback(async (p: number, filters: ServiceStatus[]) => {
+    setServicesLoading(true)
+    setServicesError(null)
+    try {
+      const token = getToken()
+      const params = new URLSearchParams({ page: String(p - 1), size: String(PAGE_SIZE) })
+      filters.forEach(s => params.append('statuses', s))
+      const res = await fetch(`${apiBaseUrl}/services?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json() as { content: Service[], totalPages: number }
+      setServices(Array.isArray(data.content) ? data.content : [])
+      setTotalPages(data.totalPages ?? 1)
+    } catch {
+      setServicesError('Could not load services.')
+    } finally {
+      setServicesLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (isLoading) return
     const token = getToken()
     const headers = { Authorization: `Bearer ${token}` }
-
     Promise.all([
-      fetch(`${apiBaseUrl}/services?size=10000`, { headers }).then(r => { if (!r.ok) throw new Error(); return r.json() as Promise<{ content: Service[] }> }),
       fetch(`${apiBaseUrl}/vendor-contacts?size=10000`, { headers }).then(r => r.ok ? r.json() as Promise<{ content: VendorContact[] }> : Promise.resolve({ content: [] as VendorContact[] })),
       fetch(`${apiBaseUrl}/employees?size=10000`, { headers }).then(r => r.ok ? r.json() as Promise<{ content: Employee[] }> : Promise.resolve({ content: [] as Employee[] })),
-    ])
-      .then(([svcsPage, contactsPage, employeesPage]) => {
-        setServices(Array.isArray(svcsPage.content) ? svcsPage.content : [])
-        setAllContacts(Array.isArray(contactsPage.content) ? contactsPage.content : [])
-        setAllEmployees(Array.isArray(employeesPage.content) ? employeesPage.content : [])
-        setServicesLoading(false)
-      })
-      .catch(() => {
-        setServicesError('Could not load services.')
-        setServicesLoading(false)
-      })
+    ]).then(([contactsPage, employeesPage]) => {
+      setAllContacts(Array.isArray(contactsPage.content) ? contactsPage.content : [])
+      setAllEmployees(Array.isArray(employeesPage.content) ? employeesPage.content : [])
+    }).catch(() => {})
   }, [isLoading])
+
+  useEffect(() => {
+    if (isLoading) return
+    loadServices(page, statusFilters)
+  }, [isLoading, page, statusFilters, loadServices])
 
   if (isLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
@@ -108,14 +126,6 @@ export function Dashboard() {
     )
     setPage(1)
   }
-
-  const filtered = statusFilters.length === 0
-    ? services
-    : services.filter(s => statusFilters.includes(s.status))
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const safePage = Math.min(page, totalPages)
-  const pageSlice = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   function openEdit(svc: Service) {
     setEditForm({
@@ -138,8 +148,8 @@ export function Dashboard() {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error()
-      setServices(prev => prev.map(s => s.id === svc.id ? { ...s, status: 'DEACTIVATED' } : s))
       setSelected({ ...svc, status: 'DEACTIVATED' })
+      await loadServices(page, statusFilters)
     } catch {
       alert('Failed to deactivate service.')
     }
@@ -172,10 +182,10 @@ export function Dashboard() {
     }
     if (!res.ok) throw new Error()
     const updated = await res.json() as Service
-    setServices(prev => prev.map(s => s.id === updated.id ? updated : s))
     setSelected(updated)
     setIsEditing(false)
     setShowConflict(false)
+    await loadServices(page, statusFilters)
   }
 
   async function handleEditSubmit() {
@@ -208,7 +218,6 @@ export function Dashboard() {
       })
       if (!res.ok) throw new Error()
       const fresh = await res.json() as Service
-      setServices(prev => prev.map(s => s.id === fresh.id ? fresh : s))
       setSelected(fresh)
       setEditForm({
         serviceName: fresh.serviceName,
@@ -247,6 +256,8 @@ export function Dashboard() {
       responsiblePersonnelIds: ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id],
     })
   }
+
+  const safePage = Math.min(page, Math.max(1, totalPages))
 
   return (
     <div className="page-container">
@@ -289,12 +300,12 @@ export function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pageSlice.length === 0 ? (
+                  {services.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="empty-row">No services match the selected filter.</td>
                     </tr>
                   ) : (
-                    pageSlice.map(service => (
+                    services.map(service => (
                       <tr key={service.id} className="service-row" onClick={() => { setSelected(service); setIsEditing(false) }}>
                         <td>{service.serviceName}</td>
                         <td>{service.vendorContact?.vendorName ?? '—'}</td>

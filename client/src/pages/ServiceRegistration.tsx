@@ -75,6 +75,8 @@ export function ServiceRegistration() {
     }).catch(() => setDataLoading(false))
   }, [isLoading])
 
+  const isAdmin = userInfo?.roles.includes('ADMIN') ?? false
+
   if (isLoading || dataLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
   }
@@ -217,7 +219,11 @@ export function ServiceRegistration() {
       <main className="form-main">
         <h1>Register Third-Party Service</h1>
 
-        {submitted ? (
+        {!isAdmin ? (
+          <div className="success-card">
+            <p>You do not have permission to register services.</p>
+          </div>
+        ) : submitted ? (
           <div className="success-card">
             <h2>Service Registered</h2>
             <p><strong>{submittedName}</strong> has been successfully registered.</p>
