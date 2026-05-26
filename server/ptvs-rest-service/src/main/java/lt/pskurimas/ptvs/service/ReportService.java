@@ -50,9 +50,8 @@ public class ReportService {
         @Transactional(readOnly = true)
         public ServiceReportResponse getSavedReportById(UUID id) {
                 log.info("Fetching saved report by id=[{}]", id);
-                CostReport entity = costReportRepository.findById(id)
-                                .orElseThrow(() -> new IllegalArgumentException("Report not found with ID: " + id));
-
-                return mapper.toResponseDto(entity);
+                return costReportRepository.findById(id)
+                        .map(mapper::toResponseDto)
+                        .orElse(null);
         }
 }

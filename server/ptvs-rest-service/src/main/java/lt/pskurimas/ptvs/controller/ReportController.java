@@ -47,6 +47,6 @@ public class ReportController {
     public ResponseEntity<ServiceReportResponse> getReportById(
             @PathVariable UUID id,
             @CurrentUser AppUser user) {
-        return ResponseEntity.ok(reportService.getSavedReportById(id));
+        return ResponseEntity.ofNullable(reportService.getSavedReportById(id));
     }
 }
