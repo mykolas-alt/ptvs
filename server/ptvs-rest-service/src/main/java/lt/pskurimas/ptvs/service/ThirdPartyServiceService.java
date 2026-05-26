@@ -66,14 +66,6 @@ public class ThirdPartyServiceService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ServiceResponse> getServicesByStatus(ServiceStatus status, Pageable pageable) {
-        log.info("Fetching services by status=[{}] page=[{}], size=[{}]", status, pageable.getPageNumber(),
-                pageable.getPageSize());
-        return repository.findByStatus(status, pageable)
-                .map(serviceConverter::toResponse);
-    }
-
-    @Transactional(readOnly = true)
     public Page<ServiceResponse> getServicesByStatuses(List<ServiceStatus> statuses, Pageable pageable) {
         log.info("Fetching services by statuses=[{}] page=[{}], size=[{}]", statuses, pageable.getPageNumber(),
                 pageable.getPageSize());

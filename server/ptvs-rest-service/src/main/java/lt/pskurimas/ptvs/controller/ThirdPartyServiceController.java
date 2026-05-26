@@ -58,7 +58,7 @@ public class ThirdPartyServiceController {
             @PathVariable ServiceStatus status,
             @PageableDefault Pageable pageable,
             @CurrentUser AppUser user) {
-        return PagedResponse.of(serviceService.getServicesByStatus(status, pageable));
+        return PagedResponse.of(serviceService.getServicesByStatuses(List.of(status), pageable));
     }
 
     @PostMapping
