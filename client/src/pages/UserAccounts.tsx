@@ -7,7 +7,7 @@ import '../styles/UserAccounts.css'
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 type UserAccount = {
-  id: string
+  userId: string
   username: string
   roles: string[]
   version: number
@@ -44,7 +44,7 @@ export function UserAccounts() {
   }
 
   async function submitRoleUpdate(user: UserAccount, roles: string[]) {
-    const res = await fetch(`${apiBaseUrl}/admin/users/${user.id}/roles`, {
+    const res = await fetch(`${apiBaseUrl}/admin/users/${user.userId}/roles`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ roles, version: user.version, forceUpdate: false }),
@@ -52,29 +52,29 @@ export function UserAccounts() {
     if (res.status === 409) {
       const fresh = await reloadUsers()
       setUsers(fresh)
-      const freshUser = fresh.find(u => u.id === user.id)
+      const freshUser = fresh.find(u => u.userId === user.userId)
       if (freshUser) {
-        const retryRes = await fetch(`${apiBaseUrl}/admin/users/${freshUser.id}/roles`, {
+        const retryRes = await fetch(`${apiBaseUrl}/admin/users/${freshUser.userId}/roles`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
           body: JSON.stringify({ roles, version: freshUser.version }),
         })
         if (!retryRes.ok) throw new Error()
         const updated = await retryRes.json() as UserAccount
-        setUsers(prev => prev.map(u => u.id === updated.id ? updated : u))
+        setUsers(prev => prev.map(u => u.userId === updated.userId ? updated : u))
       }
       return
     }
     if (!res.ok) throw new Error()
     const updated = await res.json() as UserAccount
-    setUsers(prev => prev.map(u => u.id === updated.id ? updated : u))
+    setUsers(prev => prev.map(u => u.userId === updated.userId ? updated : u))
   }
 
   async function toggleAdmin(user: UserAccount) {
     const newRoles = user.roles.includes('ADMIN')
       ? user.roles.filter(r => r !== 'ADMIN')
       : [...user.roles, 'ADMIN']
-    setTogglingId(user.id)
+    setTogglingId(user.userId)
     try {
       await submitRoleUpdate(user, newRoles)
     } catch {
@@ -112,9 +112,9 @@ export function UserAccounts() {
                 ) : users.map(u => {
                   const isAdmin = u.roles.includes('ADMIN')
                   const isSelf = u.username === userInfo?.username
-                  const isToggling = togglingId === u.id
+                  const isToggling = togglingId === u.userId
                   return (
-                    <tr key={u.id}>
+                    <tr key={u.userId}>
                       <td>
                         {u.username}
                         {isSelf && <span className="self-badge">you</span>}
