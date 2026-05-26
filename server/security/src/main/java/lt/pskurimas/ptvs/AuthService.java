@@ -1,18 +1,17 @@
 package lt.pskurimas.ptvs;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import lt.pskurimas.ptvs.model.AppUser;
+import lt.pskurimas.ptvs.model.UserRole;
+import lt.pskurimas.ptvs.repository.AppUserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-
-import jakarta.transaction.Transactional;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import lt.pskurimas.ptvs.model.UserRole;
-import lt.pskurimas.ptvs.model.AppUser;
-import lt.pskurimas.ptvs.repository.AppUserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor

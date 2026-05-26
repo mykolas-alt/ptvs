@@ -11,8 +11,7 @@ import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.CostReportRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
 import org.springframework.stereotype.Component;
-
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

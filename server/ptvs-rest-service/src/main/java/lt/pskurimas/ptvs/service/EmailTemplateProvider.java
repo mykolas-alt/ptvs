@@ -1,12 +1,13 @@
 package lt.pskurimas.ptvs.service;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
+
 import java.time.LocalDate;
 
-@Service
-public class EmailBuildingService {
-    
-    public String buildSubject() {
+@Component
+public class EmailTemplateProvider {
+
+    public String getSubject() {
         return "Service Expiration Reminder";
     }
 

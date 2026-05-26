@@ -45,4 +45,5 @@ ptvs:
       exclude-paths:
         - /api/auth/me
   notifications:
+    cron: 0 0 8 * * *
     enabled: true

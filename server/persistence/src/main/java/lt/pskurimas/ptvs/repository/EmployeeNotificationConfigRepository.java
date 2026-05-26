@@ -1,13 +1,13 @@
 package lt.pskurimas.ptvs.repository;
 
-import jakarta.transaction.Transactional;
 import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
+import lt.pskurimas.ptvs.model.ServiceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import lt.pskurimas.ptvs.model.ServiceStatus;
+import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,8 +39,10 @@ public interface EmployeeNotificationConfigRepository
         JOIN FETCH s.vendorContact vc
         LEFT JOIN FETCH enc.additionalEmails ae
         WHERE s.status = :status
+          AND function('date_part', 'day', s.contractEndDate - :today) = enc.daysBeforeExpiry
     """)
     List<EmployeeNotificationConfig> findAllNotificationDetailsForActiveServices(
-        @Param("status") ServiceStatus status
+        @Param("status") ServiceStatus status,
+        @Param("today") LocalDate today
     );
 }

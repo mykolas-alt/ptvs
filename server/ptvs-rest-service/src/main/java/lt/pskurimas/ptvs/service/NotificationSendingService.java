@@ -1,81 +1,61 @@
 package lt.pskurimas.ptvs.service;
 
+import lombok.extern.slf4j.Slf4j;
 import lt.pskurimas.ptvs.model.EmployeeNotificationConfig;
 import lt.pskurimas.ptvs.model.ServiceStatus;
-import lt.pskurimas.ptvs.model.ThirdPartyService;
 import lt.pskurimas.ptvs.repository.EmployeeNotificationConfigRepository;
+import lt.pskurimas.ptvs.service.handler.NotificationSender;
 import lt.pskurimas.ptvs.util.DateProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
+@ConditionalOnProperty(
+        prefix = "ptvs.notifications",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true
+)
 @Service
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "ptvs.notifications.enabled", havingValue = "true", matchIfMissing = true)
 public class NotificationSendingService {
-    
-    private final EmployeeNotificationConfigRepository employeeConfigRepo;
-    private final EmailDispatchService emailDispatchService;
-    private final DateProvider dateProvider;
 
+    private final EmployeeNotificationConfigRepository employeeConfigRepo;
+    private final DateProvider dateProvider;
+    private final List<NotificationSender> notificationSenders;
+
+    public NotificationSendingService(EmployeeNotificationConfigRepository employeeConfigRepo,
+                                      DateProvider dateProvider,
+                                      @Qualifier("expiryNotificationSenders") List<NotificationSender> notificationSenders) {
+        this.employeeConfigRepo = employeeConfigRepo;
+        this.dateProvider = dateProvider;
+        this.notificationSenders = notificationSenders;
+    }
+
+    @Transactional(readOnly = true)
     public void processExpirationNotifications() {
 
-        List<EmployeeNotificationConfig> configs = employeeConfigRepo.findAllNotificationDetailsForActiveServices(ServiceStatus.ACTIVE);
+        LocalDate today = dateProvider.getCurrentDate();
+
+        List<EmployeeNotificationConfig> configs = employeeConfigRepo.findAllNotificationDetailsForActiveServices(ServiceStatus.ACTIVE, today);
 
         if (configs.isEmpty()) {
             log.info("No active notification configs found. Skipping.");
             return;
         }
 
-        LocalDate today = dateProvider.getCurrentDate();
-
-        for (EmployeeNotificationConfig config : configs) {
-
-            ThirdPartyService service = config.getServiceNotificationConfig().getService();
-
-            if (!checkDays(today, service.getContractEndDate(), config.getDaysBeforeExpiry())) {
-                continue;
-            }
-
-            List<String> additionalEmails = config.getAdditionalEmails()
-                .stream()
-                .map(additionalEmail -> additionalEmail.getEmail())
-                .toList();
-
+        notificationSenders.forEach(sender -> {
             try {
-
-                emailDispatchService.sendExpirationNotification(
-                        config.getEmployee().getEmail(),
-                        service.getServiceName(),
-                        service.getVendorContact().getVendorName(),
-                        service.getContractEndDate(),
-                        config.getDaysBeforeExpiry(),
-                        additionalEmails
-                );
-
-                log.info("Notification sent: employee={}, service={}", config.getEmployee().getId(), service.getId());
-
+                configs.forEach(sender::sendNotification);
             } catch (Exception e) {
-
-                log.error("Failed sending notification for service={}", service.getId(), e);
+                log.error("Failed sending notification with sender=[{}]", sender.getClass().getSimpleName(), e);
             }
-
-        }
+        });
     }
 
-    private boolean checkDays(LocalDate today, LocalDate contractEndDate, Integer daysBeforeExpiry) {
-
-        long daysRemaining = ChronoUnit.DAYS.between(today, contractEndDate);
-
-        return daysRemaining == daysBeforeExpiry;
-    }
 
 }
