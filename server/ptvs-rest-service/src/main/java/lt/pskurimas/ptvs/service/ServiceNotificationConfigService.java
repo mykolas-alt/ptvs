@@ -1,6 +1,5 @@
 package lt.pskurimas.ptvs.service;
 
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lt.pskurimas.ptvs.dto.request.notification.CreateEmployeeNotificationConfigRequest;
 import lt.pskurimas.ptvs.dto.request.notification.UpdateEmployeeNotificationConfigRequest;
@@ -15,8 +14,11 @@ import lt.pskurimas.ptvs.repository.EmployeeRepository;
 import lt.pskurimas.ptvs.repository.ServiceNotificationConfigRepository;
 import lt.pskurimas.ptvs.repository.ThirdPartyServiceRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -30,11 +32,12 @@ public class ServiceNotificationConfigService {
 
     @Transactional(readOnly = true)
     public List<EmployeeNotificationConfigResponse> getEmployeeConfigs(UUID serviceId) {
-        return findServiceConfigOrThrow(serviceId)
-                .getEmployeeConfigs()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        return findServiceConfig(serviceId)
+                .map(config -> config
+                        .getEmployeeConfigs().stream()
+                        .map(this::toResponse)
+                        .toList())
+                .orElse(Collections.emptyList());
     }
 
     @Transactional
@@ -113,9 +116,8 @@ public class ServiceNotificationConfigService {
         }
     }
 
-    private ServiceNotificationConfig findServiceConfigOrThrow(UUID serviceId) {
-        return serviceConfigRepo.findByServiceId(serviceId)
-                .orElseThrow(() -> new IllegalArgumentException("Service config not found for serviceId: " + serviceId));
+    private Optional<ServiceNotificationConfig> findServiceConfig(UUID serviceId) {
+        return serviceConfigRepo.findByServiceId(serviceId);
     }
 
     private EmployeeNotificationConfigResponse toResponse(EmployeeNotificationConfig config) {
@@ -125,8 +127,8 @@ public class ServiceNotificationConfigService {
                 .serviceId(config.getServiceNotificationConfig().getService().getId())
                 .daysBeforeExpiry(config.getDaysBeforeExpiry())
                 .additionalEmails(config.getAdditionalEmails().stream()
-                    .map(EmployeeNotificationAdditionalEmail::getEmail)
-                    .toList())
+                        .map(EmployeeNotificationAdditionalEmail::getEmail)
+                        .toList())
                 .build();
     }
 

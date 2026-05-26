@@ -82,13 +82,6 @@ class ServiceNotificationConfigServiceTest {
     }
 
     @Test
-    void getEmployeeConfigs_WhenServiceConfigNotFound_ThrowsException() {
-        when(serviceConfigRepo.findByServiceId(serviceId)).thenReturn(Optional.empty());
-
-        assertThrows(IllegalArgumentException.class, () -> service.getEmployeeConfigs(serviceId));
-    }
-
-    @Test
     void addEmployeeConfig_WhenValid_AndServiceConfigExists_SavesAndReturnsResponse() {
         CreateEmployeeNotificationConfigRequest request = new CreateEmployeeNotificationConfigRequest();
         request.setEmployeeId(employeeId);
