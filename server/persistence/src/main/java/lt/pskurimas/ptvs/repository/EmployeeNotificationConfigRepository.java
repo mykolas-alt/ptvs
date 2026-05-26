@@ -39,7 +39,7 @@ public interface EmployeeNotificationConfigRepository
         JOIN FETCH s.vendorContact vc
         LEFT JOIN FETCH enc.additionalEmails ae
         WHERE s.status = :status
-          AND function('date_part', 'day', s.contractEndDate - :today) = enc.daysBeforeExpiry
+          AND timestampdiff(day, :today, s.contractEndDate) = enc.daysBeforeExpiry
     """)
     List<EmployeeNotificationConfig> findAllNotificationDetailsForActiveServices(
         @Param("status") ServiceStatus status,

@@ -12,8 +12,11 @@ spring:
       org.hibernate.envers.store_data_at_delete: true   # Store full entity on delete
       org.hibernate.envers.audit_table_suffix: _AUD
       # org.hibernate.envers.revision_on_collection_change: true
+      hibernate:
+        format_sql: true
     hibernate:
       ddl-auto: validate
+    show-sql: true
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-master.xml
   mail:

@@ -23,5 +23,5 @@ public class UpdateServiceRequest implements VersionedUpdateRequest {
     private UUID vendorContactId;
     private Set<UUID> responsiblePersonnelIds;
     private Long version;
-    private boolean forceUpdate;
+    private Boolean forceUpdate;
 }

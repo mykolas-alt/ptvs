@@ -18,5 +18,5 @@ public class UpdateEmployeeRequest implements VersionedUpdateRequest {
     private String department;
     private String jobTitle;
     private Long version;
-    private boolean forceUpdate;
+    private Boolean forceUpdate;
 }

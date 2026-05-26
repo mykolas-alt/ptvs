@@ -18,7 +18,7 @@ public final class OptimisticLockValidator {
             throw new IllegalArgumentException("Version must be provided");
         }
 
-        if (!request.isForceUpdate() && !Objects.equals(entity.getVersion(), request.getVersion())) {
+        if (Boolean.FALSE.equals(request.getForceUpdate()) && !Objects.equals(entity.getVersion(), request.getVersion())) {
             throw new ObjectOptimisticLockingFailureException(entity.getClass(), entity);
         }
     }

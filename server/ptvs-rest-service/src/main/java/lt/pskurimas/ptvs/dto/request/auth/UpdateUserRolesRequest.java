@@ -7,7 +7,7 @@ import java.util.Set;
 
 public record UpdateUserRolesRequest(Set<UserRole> roles,
                                      Long version,
-                                     boolean forceUpdate) implements VersionedUpdateRequest {
+                                     Boolean forceUpdate) implements VersionedUpdateRequest {
 
     @Override
     public Long getVersion() {
@@ -15,7 +15,7 @@ public record UpdateUserRolesRequest(Set<UserRole> roles,
     }
 
     @Override
-    public boolean isForceUpdate() {
+    public Boolean getForceUpdate() {
         return forceUpdate;
     }
 }

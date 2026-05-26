@@ -18,5 +18,5 @@ public class UpdateVendorContactRequest implements VersionedUpdateRequest {
     private String vendorName;
     private String department;
     private Long version;
-    private boolean forceUpdate;
+    private Boolean forceUpdate;
 }
