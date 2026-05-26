@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -65,10 +66,10 @@ public class ThirdPartyServiceService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ServiceResponse> getServicesByStatus(ServiceStatus status, Pageable pageable) {
-        log.info("Fetching services by status=[{}] page=[{}], size=[{}]", status, pageable.getPageNumber(),
+    public Page<ServiceResponse> getServicesByStatuses(List<ServiceStatus> statuses, Pageable pageable) {
+        log.info("Fetching services by statuses=[{}] page=[{}], size=[{}]", statuses, pageable.getPageNumber(),
                 pageable.getPageSize());
-        return repository.findByStatus(status, pageable)
+        return repository.findByStatusIn(statuses, pageable)
                 .map(serviceConverter::toResponse);
     }
 

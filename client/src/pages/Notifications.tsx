@@ -1,329 +1,347 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
 import '../styles/Notifications.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
-type UserConfig = {
-  id?: string
-  notificationsEnabled: boolean
-  notifyAllVendors: boolean
-  daysBeforeExpiry: number | ''
-  additionalEmails: string
-}
-
-type VendorConfigEntry = {
-  id?: string
-  vendorId: string
-  vendorEnabled: boolean
-  daysBeforeExpiry: number | ''
-  additionalEmails: string
-}
-
-type VendorContact = {
+type Employee = {
   id: string
   name: string
-  vendorName: string
+  department: string
 }
 
-const DEFAULT_CONFIG: UserConfig = {
-  notificationsEnabled: false,
-  notifyAllVendors: true,
-  daysBeforeExpiry: 30,
-  additionalEmails: '',
+type Service = {
+  id: string
+  serviceName: string
+  vendorContact: { vendorName: string } | null
+  status: string
+  responsiblePersonnel: Employee[]
+}
+
+type EmployeeConfig = {
+  id: string
+  employeeId: string
+  serviceId: string
+  daysBeforeExpiry: number
+  additionalEmails: string[]
+}
+
+type AddForm = {
+  employeeId: string
+  daysBeforeExpiry: string
+  additionalEmails: string
+}
+
+type EditForm = {
+  daysBeforeExpiry: string
+  additionalEmails: string
 }
 
 export function Notifications() {
   const { userInfo, isLoading, logout } = useAuth()
+  const isAdmin = userInfo?.roles.includes('ADMIN') ?? false
 
-  const [config, setConfig] = useState<UserConfig>(DEFAULT_CONFIG)
-  const [configExists, setConfigExists] = useState(false)
-  const [configLoading, setConfigLoading] = useState(true)
-  const [configSaving, setConfigSaving] = useState(false)
-  const [configError, setConfigError] = useState<string | null>(null)
-  const [configSaved, setConfigSaved] = useState(false)
+  const [services, setServices] = useState<Service[]>([])
+  const [servicesLoading, setServicesLoading] = useState(true)
+  const [selectedService, setSelectedService] = useState<Service | null>(null)
 
-  const [vendorConfigs, setVendorConfigs] = useState<VendorConfigEntry[]>([])
-  const [allContacts, setAllContacts] = useState<VendorContact[]>([])
+  const [configs, setConfigs] = useState<EmployeeConfig[]>([])
+  const [configsLoading, setConfigsLoading] = useState(false)
 
-  const [addVendorId, setAddVendorId] = useState('')
-  const [addVendorError, setAddVendorError] = useState<string | null>(null)
-  const [vendorSaving, setVendorSaving] = useState(false)
+  const [addForm, setAddForm] = useState<AddForm>({ employeeId: '', daysBeforeExpiry: '30', additionalEmails: '' })
+  const [addError, setAddError] = useState<string | null>(null)
+  const [addSaving, setAddSaving] = useState(false)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ daysBeforeExpiry: '', additionalEmails: '' })
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
 
   function getToken() { return localStorage.getItem(tokenStorageKey) }
 
   useEffect(() => {
     if (isLoading) return
-    const token = getToken()
-    const headers = { Authorization: `Bearer ${token}` }
-
-    Promise.all([
-      fetch(`${apiBaseUrl}/notifications/config`, { headers }),
-      fetch(`${apiBaseUrl}/notifications/vendor-config`, { headers }),
-      fetch(`${apiBaseUrl}/vendor-contacts`, { headers }),
-    ]).then(async ([cfgRes, vcfgRes, contactsRes]) => {
-      if (cfgRes.ok) {
-        const data = await cfgRes.json() as UserConfig
-        setConfig({ ...data, daysBeforeExpiry: data.daysBeforeExpiry ?? '' })
-        setConfigExists(true)
-      }
-      if (vcfgRes.ok) {
-        const data = await vcfgRes.json() as VendorConfigEntry[]
-        setVendorConfigs(data.map(v => ({ ...v, daysBeforeExpiry: v.daysBeforeExpiry ?? '' })))
-      }
-      if (contactsRes.ok) {
-        setAllContacts(await contactsRes.json() as VendorContact[])
-      }
-      setConfigLoading(false)
-    }).catch(() => setConfigLoading(false))
+    fetch(`${apiBaseUrl}/services?size=10000&statuses=ACTIVE`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+      .then(r => r.ok ? r.json() as Promise<{ content: Service[] }> : Promise.resolve({ content: [] as Service[] }))
+      .then(page => { setServices(page.content ?? []); setServicesLoading(false) })
+      .catch(() => setServicesLoading(false))
   }, [isLoading])
+
+  const loadConfigs = useCallback(async (serviceId: string) => {
+    setConfigsLoading(true)
+    try {
+      const res = await fetch(`${apiBaseUrl}/notifications/services/${serviceId}/employee-config`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      setConfigs(res.ok ? await res.json() as EmployeeConfig[] : [])
+    } catch {
+      setConfigs([])
+    } finally {
+      setConfigsLoading(false)
+    }
+  }, [])
+
+  function selectService(svc: Service) {
+    setSelectedService(svc)
+    setEditingId(null)
+    setAddForm({ employeeId: '', daysBeforeExpiry: '30', additionalEmails: '' })
+    setAddError(null)
+    loadConfigs(svc.id)
+  }
+
+  function employeeName(employeeId: string) {
+    const emp = selectedService?.responsiblePersonnel.find(e => e.id === employeeId)
+    return emp ? `${emp.name} (${emp.department})` : employeeId
+  }
+
+  function parseEmails(raw: string): string[] {
+    return raw.split(',').map(s => s.trim()).filter(Boolean)
+  }
+
+  async function handleAdd() {
+    if (!selectedService) return
+    if (!addForm.employeeId) { setAddError('Select an employee.'); return }
+    const days = Number(addForm.daysBeforeExpiry)
+    if (!days || days <= 0) { setAddError('Days before expiry must be greater than 0.'); return }
+    setAddSaving(true)
+    setAddError(null)
+    try {
+      const res = await fetch(`${apiBaseUrl}/notifications/services/${selectedService.id}/employee-config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          employeeId: addForm.employeeId,
+          daysBeforeExpiry: days,
+          additionalEmails: parseEmails(addForm.additionalEmails),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null) as { message?: string } | null
+        throw new Error(err?.message ?? 'Failed to add config.')
+      }
+      const created = await res.json() as EmployeeConfig
+      setConfigs(prev => [...prev, created])
+      setAddForm({ employeeId: '', daysBeforeExpiry: '30', additionalEmails: '' })
+    } catch (e) {
+      setAddError(e instanceof Error ? e.message : 'Failed to add.')
+    } finally {
+      setAddSaving(false)
+    }
+  }
+
+  function startEdit(config: EmployeeConfig) {
+    setEditingId(config.id)
+    setEditForm({
+      daysBeforeExpiry: String(config.daysBeforeExpiry),
+      additionalEmails: config.additionalEmails.join(', '),
+    })
+    setEditError(null)
+  }
+
+  async function handleSaveEdit(config: EmployeeConfig) {
+    if (!selectedService) return
+    const days = Number(editForm.daysBeforeExpiry)
+    if (!days || days <= 0) { setEditError('Days before expiry must be greater than 0.'); return }
+    setEditSaving(true)
+    setEditError(null)
+    try {
+      const res = await fetch(`${apiBaseUrl}/notifications/services/${selectedService.id}/employee-config/${config.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          daysBeforeExpiry: days,
+          additionalEmails: parseEmails(editForm.additionalEmails),
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to update.')
+      const updated = await res.json() as EmployeeConfig
+      setConfigs(prev => prev.map(c => c.id === config.id ? updated : c))
+      setEditingId(null)
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : 'Update failed.')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  async function handleDelete(config: EmployeeConfig) {
+    if (!selectedService) return
+    try {
+      const res = await fetch(`${apiBaseUrl}/notifications/services/${selectedService.id}/employee-config/${config.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error()
+      setConfigs(prev => prev.filter(c => c.id !== config.id))
+    } catch {
+      alert('Failed to delete config.')
+    }
+  }
+
+  const configuredEmployeeIds = new Set(configs.map(c => c.employeeId))
+  const availableToAdd = selectedService?.responsiblePersonnel.filter(e => !configuredEmployeeIds.has(e.id)) ?? []
 
   if (isLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
   }
 
-  async function saveGlobalConfig() {
-    if (!config.daysBeforeExpiry || Number(config.daysBeforeExpiry) <= 0) {
-      setConfigError('Days before expiry must be greater than 0.')
-      return
-    }
-    setConfigSaving(true)
-    setConfigError(null)
-    setConfigSaved(false)
-    const token = getToken()
-    const method = configExists ? 'PUT' : 'POST'
-    try {
-      const res = await fetch(`${apiBaseUrl}/notifications/config`, {
-        method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          notificationsEnabled: config.notificationsEnabled,
-          notifyAllVendors: config.notifyAllVendors,
-          daysBeforeExpiry: Number(config.daysBeforeExpiry),
-          additionalEmails: config.additionalEmails,
-        }),
-      })
-      if (!res.ok) throw new Error('Failed to save configuration.')
-      const saved = await res.json() as UserConfig
-      setConfig({ ...saved, daysBeforeExpiry: saved.daysBeforeExpiry ?? '' })
-      setConfigExists(true)
-      setConfigSaved(true)
-      setTimeout(() => setConfigSaved(false), 3000)
-    } catch (err) {
-      setConfigError(err instanceof Error ? err.message : 'Save failed.')
-    } finally {
-      setConfigSaving(false)
-    }
-  }
-
-  async function addVendorConfig() {
-    if (!addVendorId) { setAddVendorError('Please select a vendor.'); return }
-    if (vendorConfigs.some(v => v.vendorId === addVendorId)) { setAddVendorError('Config for this vendor already exists.'); return }
-    setAddVendorError(null)
-    setVendorSaving(true)
-    const token = getToken()
-    try {
-      const res = await fetch(`${apiBaseUrl}/notifications/vendor-config`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ vendorId: addVendorId, vendorEnabled: true, daysBeforeExpiry: null, additionalEmails: '' }),
-      })
-      if (!res.ok) throw new Error('Failed to add vendor config.')
-      const created = await res.json() as VendorConfigEntry
-      setVendorConfigs(prev => [...prev, { ...created, daysBeforeExpiry: created.daysBeforeExpiry ?? '' }])
-      setAddVendorId('')
-    } catch (err) {
-      setAddVendorError(err instanceof Error ? err.message : 'Failed to add.')
-    } finally {
-      setVendorSaving(false)
-    }
-  }
-
-  async function updateVendorConfig(entry: VendorConfigEntry) {
-    const token = getToken()
-    try {
-      const res = await fetch(`${apiBaseUrl}/notifications/vendor-config/${entry.vendorId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          vendorId: entry.vendorId,
-          vendorEnabled: entry.vendorEnabled,
-          daysBeforeExpiry: entry.daysBeforeExpiry === '' ? null : Number(entry.daysBeforeExpiry),
-          additionalEmails: entry.additionalEmails,
-        }),
-      })
-      if (!res.ok) throw new Error()
-      const updated = await res.json() as VendorConfigEntry
-      setVendorConfigs(prev => prev.map(v => v.vendorId === entry.vendorId ? { ...updated, daysBeforeExpiry: updated.daysBeforeExpiry ?? '' } : v))
-    } catch {
-      alert('Failed to update vendor configuration.')
-    }
-  }
-
-  async function deleteVendorConfig(vendorId: string) {
-    const token = getToken()
-    try {
-      const res = await fetch(`${apiBaseUrl}/notifications/vendor-config/${vendorId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error()
-      setVendorConfigs(prev => prev.filter(v => v.vendorId !== vendorId))
-    } catch {
-      alert('Failed to delete vendor configuration.')
-    }
-  }
-
-  function patchVendorEntry(vendorId: string, patch: Partial<VendorConfigEntry>) {
-    setVendorConfigs(prev => prev.map(v => v.vendorId === vendorId ? { ...v, ...patch } : v))
-  }
-
-  function vendorLabel(vendorId: string) {
-    const c = allContacts.find(c => c.id === vendorId)
-    return c ? `${c.name} (${c.vendorName})` : vendorId
-  }
-
   return (
     <div className="page-container">
       <Navbar userInfo={userInfo} onLogout={logout} />
-      <main className="notifications-main">
+      <main className="notifications-main notifications-main-wide">
         <h1>Notification Settings</h1>
 
-        {configLoading ? (
-          <p className="loading-text">Loading settings...</p>
+        {!isAdmin ? (
+          <p className="notif-hint">You need admin privileges to manage notification settings.</p>
         ) : (
-          <>
-            <section className="notif-card">
-              <h2>Global Configuration</h2>
-
-              <div className="notif-toggle-row">
-                <label className="notif-toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={config.notificationsEnabled}
-                    onChange={e => setConfig(c => ({ ...c, notificationsEnabled: e.target.checked }))}
-                  />
-                  Enable notifications
-                </label>
-              </div>
-
-              <div className="notif-toggle-row">
-                <label className="notif-toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={config.notifyAllVendors}
-                    onChange={e => setConfig(c => ({ ...c, notifyAllVendors: e.target.checked }))}
-                    disabled={!config.notificationsEnabled}
-                  />
-                  Notify for all vendors
-                </label>
-                <span className="notif-hint">If off, only vendors listed below will trigger notifications.</span>
-              </div>
-
-              <div className="notif-field">
-                <label>Days before expiry (default)</label>
-                <input
-                  type="number"
-                  min="1"
-                  className="notif-input-sm"
-                  value={config.daysBeforeExpiry}
-                  onChange={e => setConfig(c => ({ ...c, daysBeforeExpiry: e.target.value === '' ? '' : Number(e.target.value) }))}
-                  disabled={!config.notificationsEnabled}
-                />
-              </div>
-
-              <div className="notif-field">
-                <label>Additional email recipients (comma-separated)</label>
-                <input
-                  type="text"
-                  className="notif-input"
-                  value={config.additionalEmails}
-                  onChange={e => setConfig(c => ({ ...c, additionalEmails: e.target.value }))}
-                  placeholder="e.g. manager@company.com, it@company.com"
-                  disabled={!config.notificationsEnabled}
-                />
-              </div>
-
-              {configError && <p className="notif-error">{configError}</p>}
-              {configSaved && <p className="notif-success">Settings saved.</p>}
-
-              <button className="btn-primary btn-save" onClick={saveGlobalConfig} disabled={configSaving}>
-                {configSaving ? 'Saving…' : 'Save Settings'}
-              </button>
-            </section>
-
-            {!config.notifyAllVendors && config.notificationsEnabled && (
-              <section className="notif-card">
-                <h2>Per-Vendor Configuration</h2>
-                <p className="notif-hint notif-hint-block">
-                  Override notification settings for specific vendors. Leave days/emails blank to inherit the global defaults.
-                </p>
-
-                <div className="vendor-add-row">
-                  <select
-                    value={addVendorId}
-                    onChange={e => setAddVendorId(e.target.value)}
-                    className="notif-select"
+          <div className="notif-layout">
+            <aside className="notif-service-list">
+              <div className="notif-aside-header">Active Services</div>
+              {servicesLoading ? (
+                <p className="loading-text notif-aside-loading">Loading...</p>
+              ) : services.length === 0 ? (
+                <p className="notif-hint notif-aside-empty">No active services.</p>
+              ) : (
+                services.map(svc => (
+                  <button
+                    key={svc.id}
+                    className={`notif-service-item${selectedService?.id === svc.id ? ' notif-service-item-active' : ''}`}
+                    onClick={() => selectService(svc)}
                   >
-                    <option value="">— select vendor contact —</option>
-                    {allContacts
-                      .filter(c => !vendorConfigs.some(v => v.vendorId === c.id))
-                      .map(c => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.vendorName})</option>
-                      ))}
-                  </select>
-                  <button className="btn-primary btn-sm-add" onClick={addVendorConfig} disabled={vendorSaving}>
-                    Add
+                    <span className="notif-service-name">{svc.serviceName}</span>
+                    {svc.vendorContact && (
+                      <span className="notif-service-vendor">{svc.vendorContact.vendorName}</span>
+                    )}
                   </button>
-                </div>
-                {addVendorError && <p className="notif-error">{addVendorError}</p>}
+                ))
+              )}
+            </aside>
 
-                {vendorConfigs.length > 0 && (
-                  <div className="vendor-config-list">
-                    {vendorConfigs.map(entry => (
-                      <div key={entry.vendorId} className="vendor-config-row">
-                        <div className="vendor-config-name">{vendorLabel(entry.vendorId)}</div>
-                        <label className="notif-toggle-label">
-                          <input
-                            type="checkbox"
-                            checked={entry.vendorEnabled}
-                            onChange={e => patchVendorEntry(entry.vendorId, { vendorEnabled: e.target.checked })}
-                          />
-                          Enabled
-                        </label>
-                        <div className="vendor-config-field">
-                          <label>Days</label>
-                          <input
-                            type="number"
-                            min="1"
-                            className="notif-input-sm"
-                            value={entry.daysBeforeExpiry}
-                            onChange={e => patchVendorEntry(entry.vendorId, { daysBeforeExpiry: e.target.value === '' ? '' : Number(e.target.value) })}
-                            placeholder="global"
-                          />
-                        </div>
-                        <div className="vendor-config-field vendor-config-emails">
-                          <label>Additional emails</label>
-                          <input
-                            type="text"
-                            className="notif-input"
-                            value={entry.additionalEmails}
-                            onChange={e => patchVendorEntry(entry.vendorId, { additionalEmails: e.target.value })}
-                            placeholder="inherit from global"
-                          />
-                        </div>
-                        <div className="vendor-config-actions">
-                          <button className="btn-secondary btn-sm" onClick={() => updateVendorConfig(entry)}>Save</button>
-                          <button className="btn-danger btn-sm" onClick={() => deleteVendorConfig(entry.vendorId)}>Remove</button>
-                        </div>
-                      </div>
-                    ))}
+            <div className="notif-config-panel">
+              {!selectedService ? (
+                <p className="notif-hint notif-panel-empty">Select a service to manage its notification settings.</p>
+              ) : (
+                <>
+                  <div className="notif-panel-header">
+                    <h2>{selectedService.serviceName}</h2>
+                    {selectedService.vendorContact && (
+                      <span className="notif-panel-sub">{selectedService.vendorContact.vendorName}</span>
+                    )}
                   </div>
-                )}
-              </section>
-            )}
-          </>
+
+                  {configsLoading ? (
+                    <p className="loading-text">Loading...</p>
+                  ) : (
+                    <>
+                      {configs.length === 0 && (
+                        <p className="notif-hint notif-hint-block">No notification configs yet. Add one below.</p>
+                      )}
+
+                      {configs.map(config => (
+                        <div key={config.id} className="notif-config-row">
+                          <div className="notif-config-employee">{employeeName(config.employeeId)}</div>
+
+                          {editingId === config.id ? (
+                            <div className="notif-edit-inline">
+                              <div className="notif-inline-fields">
+                                <div className="notif-inline-field">
+                                  <label>Days before expiry</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    className="notif-input-sm"
+                                    value={editForm.daysBeforeExpiry}
+                                    onChange={e => setEditForm(f => ({ ...f, daysBeforeExpiry: e.target.value }))}
+                                  />
+                                </div>
+                                <div className="notif-inline-field notif-inline-emails">
+                                  <label>Additional emails (comma-separated)</label>
+                                  <input
+                                    type="text"
+                                    className="notif-input"
+                                    value={editForm.additionalEmails}
+                                    onChange={e => setEditForm(f => ({ ...f, additionalEmails: e.target.value }))}
+                                    placeholder="e.g. manager@co.com"
+                                  />
+                                </div>
+                              </div>
+                              {editError && <p className="notif-error">{editError}</p>}
+                              <div className="notif-config-actions">
+                                <button className="btn-primary btn-sm" onClick={() => handleSaveEdit(config)} disabled={editSaving}>
+                                  {editSaving ? 'Saving…' : 'Save'}
+                                </button>
+                                <button className="btn-secondary btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="notif-config-details">
+                              <span className="notif-config-days">{config.daysBeforeExpiry}d before expiry</span>
+                              {config.additionalEmails.length > 0 && (
+                                <span className="notif-config-emails">{config.additionalEmails.join(', ')}</span>
+                              )}
+                              <div className="notif-config-actions">
+                                <button className="btn-secondary btn-sm" onClick={() => startEdit(config)}>Edit</button>
+                                <button className="btn-danger btn-sm" onClick={() => handleDelete(config)}>Remove</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      <div className="notif-add-section">
+                        <div className="notif-add-header">Add Employee Config</div>
+                        {availableToAdd.length === 0 ? (
+                          <p className="notif-hint">All responsible employees already have a config.</p>
+                        ) : (
+                          <>
+                            <div className="notif-add-row">
+                              <select
+                                value={addForm.employeeId}
+                                onChange={e => setAddForm(f => ({ ...f, employeeId: e.target.value }))}
+                                className="notif-select"
+                              >
+                                <option value="">— select employee —</option>
+                                {availableToAdd.map(e => (
+                                  <option key={e.id} value={e.id}>{e.name} ({e.department})</option>
+                                ))}
+                              </select>
+                              <div className="notif-inline-field">
+                                <label>Days before expiry</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  className="notif-input-sm"
+                                  value={addForm.daysBeforeExpiry}
+                                  onChange={e => setAddForm(f => ({ ...f, daysBeforeExpiry: e.target.value }))}
+                                />
+                              </div>
+                            </div>
+                            <div className="notif-field">
+                              <label>Additional emails (comma-separated)</label>
+                              <input
+                                type="text"
+                                className="notif-input"
+                                value={addForm.additionalEmails}
+                                onChange={e => setAddForm(f => ({ ...f, additionalEmails: e.target.value }))}
+                                placeholder="e.g. manager@co.com, it@co.com"
+                              />
+                            </div>
+                            {addError && <p className="notif-error">{addError}</p>}
+                            <button className="btn-primary btn-sm-add" onClick={handleAdd} disabled={addSaving}>
+                              {addSaving ? 'Adding…' : 'Add'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         )}
       </main>
     </div>

@@ -17,6 +17,8 @@ public interface ThirdPartyServiceRepository extends JpaRepository<ThirdPartySer
 
     Page<ThirdPartyService> findByStatus(ServiceStatus status, Pageable pageable);
 
+    Page<ThirdPartyService> findByStatusIn(List<ServiceStatus> statuses, Pageable pageable);
+
     @Query("SELECT s FROM ThirdPartyService s " +
             "WHERE s.contractStartDate <= :endDate " +
             "AND COALESCE(s.manualDeactivatedAt, s.contractEndDate) >= :startDate")

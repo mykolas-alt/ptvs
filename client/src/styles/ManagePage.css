@@ -42,6 +42,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 16px;
+  align-items: start;
+}
+
+.manage-form-grid .form-field {
+  margin-top: 0;
 }
 
 @media (max-width: 540px) {
@@ -216,3 +221,83 @@
 .btn-row-edit:disabled { opacity: 0.5; cursor: default; }
 
 .row-editing td { background: #fff8f0 !important; }
+
+/* Form modal */
+
+.manage-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 200;
+  padding: 24px;
+}
+
+.manage-modal {
+  background: #fff;
+  border: 1px solid #c0c0c0;
+  border-radius: 4px;
+  width: min(100%, 540px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.manage-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f5f5f5;
+  border-radius: 4px 4px 0 0;
+}
+
+.manage-modal-header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1c1c;
+}
+
+.manage-modal-close {
+  background: transparent;
+  border: none;
+  color: #757575;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  line-height: 1;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.manage-modal-close:hover {
+  background: #e0e0e0;
+  color: #1c1c1c;
+}
+
+.manage-modal-body {
+  padding: 14px 16px 16px;
+}
+
+.conflict-warning {
+  font-size: 12px;
+  color: #e65100;
+  background: #fff3e0;
+  border: 1px solid #ffcc80;
+  border-radius: 3px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+}
+
+/* Grant admin button variant */
+
+.btn-row-grant {
+  border-color: #a5d6a7 !important;
+  color: #2e7d32 !important;
+  background: #e8f5e9 !important;
+}
+
+.btn-row-grant:hover:not(:disabled) {
+  background: #c8e6c9 !important;
+}

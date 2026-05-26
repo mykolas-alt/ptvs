@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth, tokenStorageKey } from '../hooks/useAuth'
 import { Navbar } from '../components/Navbar'
-import { OptimisticLockConflictModal } from '../components/OptimisticLockConflictModal'
 import '../styles/ManagePage.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
@@ -49,8 +48,9 @@ export function VendorContacts() {
   const [errors, setErrors] = useState<ContactErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [showConflict, setShowConflict] = useState(false)
-  const [conflictLoading, setConflictLoading] = useState(false)
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null)
+
+  const isAdmin = userInfo?.roles.includes('ADMIN') ?? false
 
   function getToken() { return localStorage.getItem(tokenStorageKey) }
 
@@ -75,9 +75,11 @@ export function VendorContacts() {
 
   function openCreate() {
     setEditingId(null)
+    setEditingVersion(null)
     setForm(EMPTY)
     setErrors({})
     setSubmitError(null)
+    setConflictWarning(null)
     setShowForm(true)
   }
 
@@ -87,6 +89,7 @@ export function VendorContacts() {
     setForm({ vendorName: c.vendorName, name: c.name, email: c.email, phone: c.phone ?? '' })
     setErrors({})
     setSubmitError(null)
+    setConflictWarning(null)
     setShowForm(true)
   }
 
@@ -96,21 +99,32 @@ export function VendorContacts() {
     setEditingVersion(null)
     setForm(EMPTY)
     setErrors({})
+    setConflictWarning(null)
   }
 
-  async function submitUpdate(forceUpdate = false) {
+  async function submitUpdate() {
     if (!editingId) return
     const token = getToken()
     const res = await fetch(`${apiBaseUrl}/vendor-contacts/${editingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ...form, version: editingVersion, forceUpdate }),
+      body: JSON.stringify({ ...form, version: editingVersion }),
     })
-    if (res.status === 409) { setShowConflict(true); return }
+    if (res.status === 409) {
+      const freshRes = await fetch(`${apiBaseUrl}/vendor-contacts/${editingId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (freshRes.ok) {
+        const fresh = await freshRes.json() as VendorContact
+        setContacts(prev => prev.map(c => c.id === fresh.id ? fresh : c))
+        setEditingVersion(fresh.version)
+      }
+      setConflictWarning('This record was modified by someone else. Version refreshed — review and save again.')
+      return
+    }
     if (!res.ok) throw new Error('Failed to update contact.')
     const updated = await res.json() as VendorContact
     setContacts(prev => prev.map(c => c.id === updated.id ? updated : c))
-    setShowConflict(false)
     closeForm()
   }
 
@@ -121,6 +135,7 @@ export function VendorContacts() {
 
     setIsSubmitting(true)
     setSubmitError(null)
+    setConflictWarning(null)
     try {
       if (editingId) {
         await submitUpdate()
@@ -142,95 +157,18 @@ export function VendorContacts() {
     }
   }
 
-  async function handleConflictReload() {
-    if (!editingId) return
-    setConflictLoading(true)
-    try {
-      const res = await fetch(`${apiBaseUrl}/vendor-contacts/${editingId}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      })
-      if (!res.ok) throw new Error()
-      const fresh = await res.json() as VendorContact
-      setContacts(prev => prev.map(c => c.id === fresh.id ? fresh : c))
-      setEditingVersion(fresh.version)
-      setForm({ vendorName: fresh.vendorName, name: fresh.name, email: fresh.email, phone: fresh.phone ?? '' })
-      setShowConflict(false)
-    } catch {
-      setSubmitError('Failed to reload contact data.')
-      setShowConflict(false)
-    } finally {
-      setConflictLoading(false)
-    }
-  }
-
-  async function handleConflictForce() {
-    setConflictLoading(true)
-    try {
-      await submitUpdate(true)
-    } catch {
-      setSubmitError('Force update failed.')
-      setShowConflict(false)
-    } finally {
-      setConflictLoading(false)
-    }
-  }
-
   return (
     <div className="page-container">
       <Navbar userInfo={userInfo} onLogout={logout} />
-      {showConflict && (
-        <OptimisticLockConflictModal
-          entityLabel="vendor contact"
-          onReload={handleConflictReload}
-          onForce={handleConflictForce}
-          onClose={() => setShowConflict(false)}
-          isLoading={conflictLoading}
-        />
-      )}
       <main className="manage-main">
         <div className="manage-toolbar">
           <h1>Vendor Contacts</h1>
-          <button className="btn-primary btn-sm-add" onClick={showForm && !editingId ? closeForm : openCreate}>
-            {showForm && !editingId ? 'Cancel' : '+ Add Contact'}
-          </button>
+          {isAdmin && (
+            <button className="btn-primary btn-sm-add" onClick={openCreate}>
+              + Add Contact
+            </button>
+          )}
         </div>
-
-        {showForm && (
-          <form className="manage-form" onSubmit={handleSubmit} noValidate>
-            <p className="manage-form-title">{editingId ? 'Edit Contact' : 'New Contact'}</p>
-            <div className="manage-form-grid">
-              <div className={`form-field${errors.vendorName ? ' has-error' : ''}`}>
-                <label>Vendor Name</label>
-                <input type="text" value={form.vendorName} onChange={e => setField('vendorName', e.target.value)} placeholder="e.g. Amazon Web Services" />
-                {errors.vendorName && <span className="field-error">{errors.vendorName}</span>}
-              </div>
-              <div className={`form-field${errors.name ? ' has-error' : ''}`}>
-                <label>Contact Name</label>
-                <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. Support Team" />
-                {errors.name && <span className="field-error">{errors.name}</span>}
-              </div>
-              <div className={`form-field${errors.email ? ' has-error' : ''}`}>
-                <label>Email</label>
-                <input type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="e.g. support@vendor.com" />
-                {errors.email && <span className="field-error">{errors.email}</span>}
-              </div>
-              <div className={`form-field${errors.phone ? ' has-error' : ''}`}>
-                <label>Phone</label>
-                <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} placeholder="e.g. +1-800-555-0100" />
-                {errors.phone && <span className="field-error">{errors.phone}</span>}
-              </div>
-            </div>
-            {submitError && <p className="field-error">{submitError}</p>}
-            <div className="manage-form-actions">
-              <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : editingId ? 'Save Changes' : 'Save Contact'}
-              </button>
-              {editingId && (
-                <button type="button" className="btn-cancel" onClick={closeForm}>Cancel</button>
-              )}
-            </div>
-          </form>
-        )}
 
         <div className="table-wrapper">
           {listLoading ? (
@@ -243,26 +181,23 @@ export function VendorContacts() {
                   <th>Contact Name</th>
                   <th>Email</th>
                   <th>Phone</th>
-                  <th></th>
+                  {isAdmin && <th></th>}
                 </tr>
               </thead>
               <tbody>
                 {contacts.length === 0 ? (
-                  <tr><td colSpan={5} className="empty-row">No vendor contacts yet.</td></tr>
+                  <tr><td colSpan={isAdmin ? 5 : 4} className="empty-row">No vendor contacts yet.</td></tr>
                 ) : contacts.map(c => (
-                  <tr key={c.id} className={editingId === c.id ? 'row-editing' : ''}>
+                  <tr key={c.id}>
                     <td>{c.vendorName}</td>
                     <td>{c.name}</td>
                     <td>{c.email}</td>
                     <td>{c.phone || '—'}</td>
-                    <td className="action-cell">
-                      <button
-                        className="btn-row-edit"
-                        onClick={() => editingId === c.id ? closeForm() : openEdit(c)}
-                      >
-                        {editingId === c.id ? 'Cancel' : 'Edit'}
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="action-cell">
+                        <button className="btn-row-edit" onClick={() => openEdit(c)}>Edit</button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -270,6 +205,51 @@ export function VendorContacts() {
           )}
         </div>
       </main>
+
+      {showForm && (
+        <div className="manage-modal-overlay" onClick={closeForm}>
+          <div className="manage-modal" onClick={e => e.stopPropagation()}>
+            <div className="manage-modal-header">
+              <h2>{editingId ? 'Edit Contact' : 'New Contact'}</h2>
+              <button className="manage-modal-close" onClick={closeForm}>✕</button>
+            </div>
+            <div className="manage-modal-body">
+              <form onSubmit={handleSubmit} noValidate>
+                {conflictWarning && <p className="conflict-warning">{conflictWarning}</p>}
+                <div className="manage-form-grid">
+                  <div className={`form-field${errors.vendorName ? ' has-error' : ''}`}>
+                    <label>Vendor Name</label>
+                    <input type="text" value={form.vendorName} onChange={e => setField('vendorName', e.target.value)} placeholder="e.g. Amazon Web Services" />
+                    {errors.vendorName && <span className="field-error">{errors.vendorName}</span>}
+                  </div>
+                  <div className={`form-field${errors.name ? ' has-error' : ''}`}>
+                    <label>Contact Name</label>
+                    <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. Support Team" />
+                    {errors.name && <span className="field-error">{errors.name}</span>}
+                  </div>
+                  <div className={`form-field${errors.email ? ' has-error' : ''}`}>
+                    <label>Email</label>
+                    <input type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="e.g. support@vendor.com" />
+                    {errors.email && <span className="field-error">{errors.email}</span>}
+                  </div>
+                  <div className={`form-field${errors.phone ? ' has-error' : ''}`}>
+                    <label>Phone</label>
+                    <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} placeholder="e.g. +1-800-555-0100" />
+                    {errors.phone && <span className="field-error">{errors.phone}</span>}
+                  </div>
+                </div>
+                {submitError && <p className="field-error" style={{ marginTop: 8 }}>{submitError}</p>}
+                <div className="manage-form-actions" style={{ marginTop: 12 }}>
+                  <button type="submit" className="btn-primary btn-submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Saving...' : editingId ? 'Save Changes' : 'Save Contact'}
+                  </button>
+                  <button type="button" className="btn-cancel" onClick={closeForm}>Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
