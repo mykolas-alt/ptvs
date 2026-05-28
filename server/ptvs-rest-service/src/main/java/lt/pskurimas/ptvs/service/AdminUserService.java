@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -42,7 +43,7 @@ public class AdminUserService {
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         OptimisticLockValidator.verify(request, user);
-        user.setRoles(Set.copyOf(request.roles()));
+        user.setRoles(new HashSet<>(request.roles()));
         AppUser saved = appUserRepository.save(user);
         log.info("Updated roles for user id=[{}] username=[{}]", saved.getId(), saved.getUsername());
 
