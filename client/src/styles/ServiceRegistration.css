@@ -40,10 +40,13 @@ legend {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.service-form .form-field {
   margin-top: 12px;
 }
 
-.form-field:first-of-type {
+.service-form .form-field:first-of-type {
   margin-top: 0;
 }
 
@@ -64,6 +67,15 @@ legend {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   width: 100%;
   box-sizing: border-box;
+}
+
+.form-field input[type="checkbox"] {
+  width: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  flex-shrink: 0;
 }
 
 .form-field input::placeholder {
@@ -104,7 +116,7 @@ legend {
   margin-top: 12px;
 }
 
-.field-row .form-field {
+.service-form .field-row .form-field {
   margin-top: 0;
 }
 
@@ -197,7 +209,8 @@ legend {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  max-height: 160px;
+  min-height: 80px;
+  max-height: 240px;
   overflow-y: auto;
   border: 1px solid #e0e0e0;
   border-radius: 3px;

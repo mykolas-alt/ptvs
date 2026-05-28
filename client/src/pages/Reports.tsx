@@ -76,6 +76,8 @@ export function Reports() {
   const [endDate, setEndDate] = useState('')
   const [savedReports, setSavedReports] = useState<ReportSummary[]>([])
   const [savedReportsLoading, setSavedReportsLoading] = useState(true)
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [activeReportData, setActiveReportData] = useState<ReportData | null>(null)
   const [viewLoading, setViewLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -92,14 +94,15 @@ export function Reports() {
     return () => { if (pollingRef.current) clearTimeout(pollingRef.current) }
   }, [])
 
-  async function loadReports() {
+  async function loadReports(p = 0) {
     try {
-      const res = await fetch(`${apiBaseUrl}/reports/cost-report?size=100`, {
+      const res = await fetch(`${apiBaseUrl}/reports/cost-report?size=10&page=${p}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       })
       if (!res.ok) return
-      const page = await res.json() as { content: ReportSummary[] }
-      setSavedReports(Array.isArray(page.content) ? page.content : [])
+      const data = await res.json() as { content: ReportSummary[]; totalPages: number }
+      setSavedReports(Array.isArray(data.content) ? data.content : [])
+      setTotalPages(data.totalPages ?? 0)
     } catch {
       // ignore — list just stays empty
     }
@@ -107,8 +110,8 @@ export function Reports() {
 
   useEffect(() => {
     if (isLoading) return
-    loadReports().finally(() => setSavedReportsLoading(false))
-  }, [isLoading])
+    loadReports(page).finally(() => setSavedReportsLoading(false))
+  }, [isLoading, page])
 
   if (isLoading) {
     return <div className="page-container"><p className="loading-text">Loading...</p></div>
@@ -124,7 +127,7 @@ export function Reports() {
       const data = await res.json() as ReportData
       if (data.status === 'COMPLETED') return data
       if (data.status === 'FAILED') throw new Error('Report generation failed.')
-      await loadReports()
+      await loadReports(0)
     }
     throw new Error('Report generation timed out.')
   }
@@ -155,9 +158,10 @@ export function Reports() {
       })
       if (!res.ok) throw new Error('Failed to start report generation.')
       const initial = await res.json() as ReportData
-      await loadReports()
+      setPage(0)
+      await loadReports(0)
       await pollUntilComplete(initial.id)
-      await loadReports()
+      await loadReports(0)
       setNewlyGeneratedId(initial.id)
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Report generation failed.')
@@ -229,6 +233,7 @@ export function Reports() {
           ) : savedReports.length === 0 ? (
             <p className="empty-log">No reports generated yet.</p>
           ) : (
+            <>
             <table className="reports-table">
               <thead>
                 <tr>
@@ -237,7 +242,7 @@ export function Reports() {
                   <th>Period End</th>
                   <th>Total Cost</th>
                   <th>Status</th>
-                  <th></th>
+                  <th className="reports-action-th"></th>
                 </tr>
               </thead>
               <tbody>
@@ -248,7 +253,7 @@ export function Reports() {
                     <td>{r.endDate}</td>
                     <td>{r.status === 'COMPLETED' ? `€${Number(r.totalCost).toLocaleString()}` : '—'}</td>
                     <td><span className={`report-status report-status-${r.status.toLowerCase()}`}>{r.status.charAt(0) + r.status.slice(1).toLowerCase()}</span></td>
-                    <td>
+                    <td className="reports-action-td">
                       {r.status === 'COMPLETED' && (
                         <div className="report-action-cell">
                           <button className="link-btn" onClick={() => handleView(r.id)} disabled={viewLoading}>
@@ -266,6 +271,26 @@ export function Reports() {
                 ))}
               </tbody>
             </table>
+            {totalPages > 1 && (
+              <div className="reports-pagination">
+                <button
+                  className="page-btn"
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                >
+                  ‹ Prev
+                </button>
+                <span className="page-info">Page {page + 1} of {totalPages}</span>
+                <button
+                  className="page-btn"
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                >
+                  Next ›
+                </button>
+              </div>
+            )}
+            </>
           )}
         </div>
       </main>

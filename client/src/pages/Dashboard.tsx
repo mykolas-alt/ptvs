@@ -171,9 +171,10 @@ export function Dashboard() {
   async function submitEdit(forceUpdate = false) {
     if (!editForm || !selected) return
     const token = getToken()
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
     const res = await fetch(`${apiBaseUrl}/services/${selected.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers,
       body: JSON.stringify(buildEditPayload(editForm, selected, forceUpdate)),
     })
     if (res.status === 409) {
@@ -181,8 +182,17 @@ export function Dashboard() {
       return
     }
     if (!res.ok) throw new Error()
-    const updated = await res.json() as Service
-    setSelected(updated)
+    if (forceUpdate) {
+      window.location.reload()
+      return
+    }
+    const savedId = selected.id
+    const freshRes = await fetch(`${apiBaseUrl}/services/${savedId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!freshRes.ok) throw new Error()
+    const fresh = await freshRes.json() as Service
+    setSelected(fresh)
     setIsEditing(false)
     setShowConflict(false)
     await loadServices(page, statusFilters)

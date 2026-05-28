@@ -410,22 +410,29 @@
 .employee-checklist {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: 140px;
+  gap: 5px;
+  min-height: 80px;
+  max-height: 240px;
   overflow-y: auto;
   border: 1px solid #e0e0e0;
   border-radius: 3px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   background: #fafafa;
 }
 
 .emp-check {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 7px;
+  font-size: 13px;
   color: #3a3a3a;
   cursor: pointer;
+}
+
+.emp-check input[type="checkbox"] {
+  width: auto;
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .edit-error {
