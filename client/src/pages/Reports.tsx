@@ -127,7 +127,7 @@ export function Reports() {
       const data = await res.json() as ReportData
       if (data.status === 'COMPLETED') return data
       if (data.status === 'FAILED') throw new Error('Report generation failed.')
-      await loadReports(0)
+      await loadReports(page)
     }
     throw new Error('Report generation timed out.')
   }
@@ -158,10 +158,9 @@ export function Reports() {
       })
       if (!res.ok) throw new Error('Failed to start report generation.')
       const initial = await res.json() as ReportData
-      setPage(0)
-      await loadReports(0)
+      await loadReports(page)
       await pollUntilComplete(initial.id)
-      await loadReports(0)
+      await loadReports(page)
       setNewlyGeneratedId(initial.id)
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Report generation failed.')
