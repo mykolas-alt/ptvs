@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="024-delete-seed-notification-config" author="Ignas">
+
+        <delete tableName="service_notification_config">
+            <where>id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'</where>
+        </delete>
+        <delete tableName="service_notification_config">
+            <where>id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'</where>
+        </delete>
+
+        <delete tableName="employee_notification_config">
+            <where>id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'</where>
+        </delete>
+
+        <delete tableName="employee">
+            <where>id = '11111111-1111-1111-1111-111111111111'</where>
+        </delete>
+
+        <delete tableName="third_party_service">
+            <where>id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'</where>
+        </delete>
+        <delete tableName="third_party_service">
+            <where>id = 'cccccccc-cccc-cccc-cccc-cccccccccccc'</where>
+        </delete>
+
+        <delete tableName="vendor_contact">
+            <where>id = 'ffffffff-ffff-ffff-ffff-ffffffffffff'</where>
+        </delete>
+
+
+    </changeSet>
+
+</databaseChangeLog>
+
