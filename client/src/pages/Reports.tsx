@@ -86,8 +86,6 @@ export function Reports() {
   const [newlyGeneratedId, setNewlyGeneratedId] = useState<string | null>(null)
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const isAdmin = userInfo?.roles.includes('ADMIN') ?? false
-
   function getToken() { return localStorage.getItem(tokenStorageKey) }
 
   useEffect(() => {
@@ -127,7 +125,7 @@ export function Reports() {
       const data = await res.json() as ReportData
       if (data.status === 'COMPLETED') return data
       if (data.status === 'FAILED') throw new Error('Report generation failed.')
-      await loadReports(0)
+      await loadReports(page)
     }
     throw new Error('Report generation timed out.')
   }
@@ -158,10 +156,9 @@ export function Reports() {
       })
       if (!res.ok) throw new Error('Failed to start report generation.')
       const initial = await res.json() as ReportData
-      setPage(0)
-      await loadReports(0)
+      await loadReports(page)
       await pollUntilComplete(initial.id)
-      await loadReports(0)
+      await loadReports(page)
       setNewlyGeneratedId(initial.id)
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Report generation failed.')
@@ -194,8 +191,7 @@ export function Reports() {
       <main className="reports-main">
         <h1>Reports</h1>
 
-        {isAdmin && (
-          <div className="report-card">
+        <div className="report-card">
             <h2>Generate Report</h2>
             <div className="report-date-row">
               <div className="form-field">
@@ -224,7 +220,6 @@ export function Reports() {
             {dateError && <p className="field-error">{dateError}</p>}
             {generateError && <p className="field-error">{generateError}</p>}
           </div>
-        )}
 
         <div className="report-log">
           <h2>Previously Generated Reports</h2>
